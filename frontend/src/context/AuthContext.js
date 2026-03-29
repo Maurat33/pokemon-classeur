@@ -15,7 +15,7 @@ authApi.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url.includes('/auth/refresh')) {
+    if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url.includes('/auth/')) {
       originalRequest._retry = true;
 
       if (!isRefreshing) {
@@ -23,17 +23,17 @@ authApi.interceptors.response.use(
         try {
           await axios.post(`${API_URL}/api/auth/refresh`, {}, { withCredentials: true });
           isRefreshing = false;
-          // Retry queued requests
           refreshQueue.forEach(cb => cb());
           refreshQueue = [];
           return authApi(originalRequest);
         } catch {
           isRefreshing = false;
           refreshQueue = [];
+          // Refresh failed — clear state, redirect to login
+          if (onAuthFail) onAuthFail();
           return Promise.reject(error);
         }
       } else {
-        // Queue this request until refresh completes
         return new Promise((resolve) => {
           refreshQueue.push(() => resolve(authApi(originalRequest)));
         });
@@ -42,6 +42,9 @@ authApi.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+let onAuthFail = null;
+export const setOnAuthFail = (cb) => { onAuthFail = cb; };
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -59,6 +62,8 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
+    // When refresh fails, force logout
+    setOnAuthFail(() => setUser(false));
     checkAuth();
   }, [checkAuth]);
 
