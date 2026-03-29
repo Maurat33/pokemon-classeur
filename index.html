@@ -1,0 +1,1554 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎴 Mon Classeur Pokémon</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --yellow: #FFD93D;
+    --red: #FF6B6B;
+    --blue: #4ECDC4;
+    --purple: #C77DFF;
+    --green: #6BCB77;
+    --orange: #FF9F1C;
+    --dark: #1a1a2e;
+    --card-bg: #ffffff;
+    --shadow: 0 8px 32px rgba(0,0,0,0.12);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: #fff9e6;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(circle at 10% 20%, rgba(255,217,61,0.3) 0%, transparent 40%),
+      radial-gradient(circle at 90% 80%, rgba(78,205,196,0.25) 0%, transparent 40%),
+      radial-gradient(circle at 50% 50%, rgba(199,125,255,0.15) 0%, transparent 60%);
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  /* Floating pokéballs deco */
+  .deco-ball {
+    position: fixed;
+    border-radius: 50%;
+    opacity: 0.08;
+    pointer-events: none;
+    z-index: 0;
+    animation: float 6s ease-in-out infinite;
+  }
+  .deco-ball:nth-child(1) { width: 120px; height: 120px; background: var(--red); top: -20px; left: -20px; animation-delay: 0s; }
+  .deco-ball:nth-child(2) { width: 80px; height: 80px; background: var(--yellow); bottom: 10%; right: -10px; animation-delay: 2s; }
+  .deco-ball:nth-child(3) { width: 60px; height: 60px; background: var(--blue); top: 40%; left: -15px; animation-delay: 4s; }
+  @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-20px)} }
+
+  /* === HEADER === */
+  header {
+    position: relative;
+    z-index: 10;
+    text-align: center;
+    padding: 28px 20px 20px;
+    background: linear-gradient(135deg, #FF6B6B 0%, #FF9F1C 50%, #FFD93D 100%);
+    border-bottom: 5px solid var(--dark);
+    box-shadow: 0 6px 0 #e05a00, 0 12px 30px rgba(0,0,0,0.2);
+  }
+
+  header h1 {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(2rem, 6vw, 3.5rem);
+    color: white;
+    text-shadow: 3px 3px 0 var(--dark), 5px 5px 0 rgba(0,0,0,0.2);
+    letter-spacing: 1px;
+  }
+
+  header p {
+    color: rgba(255,255,255,0.9);
+    font-size: 1rem;
+    font-weight: 700;
+    margin-top: 4px;
+  }
+
+  /* Pokéball icon in header */
+  .pokeball-icon {
+    display: inline-block;
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(180deg, #FF6B6B 50%, white 50%);
+    border: 3px solid var(--dark);
+    position: relative;
+    vertical-align: middle;
+    margin: 0 10px;
+    box-shadow: 2px 2px 0 #333;
+  }
+  .pokeball-icon::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: white;
+    border: 3px solid var(--dark);
+  }
+  .pokeball-icon::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: 0; right: 0;
+    height: 3px;
+    background: var(--dark);
+    transform: translateY(-50%);
+  }
+
+  /* === STATS BAR === */
+  .stats-bar {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    padding: 16px 20px;
+    background: var(--dark);
+    border-bottom: 4px solid var(--yellow);
+  }
+
+  .stat-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,0.08);
+    border: 2px solid rgba(255,255,255,0.15);
+    border-radius: 50px;
+    padding: 8px 18px;
+    color: white;
+    font-weight: 700;
+    font-size: 0.9rem;
+    transition: transform 0.2s;
+  }
+
+  .stat-chip:hover { transform: scale(1.05); }
+
+  .stat-chip .label { color: rgba(255,255,255,0.6); font-size: 0.75rem; display: block; }
+  .stat-chip .value { font-family: 'Fredoka One', cursive; font-size: 1.3rem; color: var(--yellow); }
+  .stat-chip .emoji { font-size: 1.4rem; }
+
+  .total-value-chip {
+    background: linear-gradient(135deg, #FFD93D, #FF9F1C);
+    border-color: var(--yellow);
+    box-shadow: 0 4px 15px rgba(255,217,61,0.4);
+  }
+  .total-value-chip .value { color: var(--dark); }
+  .total-value-chip .label { color: rgba(0,0,0,0.6); }
+
+  /* === NAV === */
+  nav {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px 20px;
+    flex-wrap: wrap;
+  }
+
+  .nav-btn {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1rem;
+    padding: 10px 22px;
+    border: 3px solid var(--dark);
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 3px 3px 0 var(--dark);
+    background: white;
+    color: var(--dark);
+  }
+
+  .nav-btn:hover { transform: translate(-2px,-2px); box-shadow: 5px 5px 0 var(--dark); }
+  .nav-btn:active { transform: translate(1px,1px); box-shadow: 1px 1px 0 var(--dark); }
+  .nav-btn.active { background: var(--yellow); }
+
+  /* === MAIN CONTENT === */
+  main {
+    position: relative;
+    z-index: 5;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* === SCAN SECTION === */
+  .scan-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .scan-card {
+    background: white;
+    border: 3px solid var(--dark);
+    border-radius: 24px;
+    padding: 30px;
+    width: 100%;
+    max-width: 600px;
+    box-shadow: var(--shadow), 6px 6px 0 var(--dark);
+    text-align: center;
+  }
+
+  .scan-card h2 {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.8rem;
+    color: var(--dark);
+    margin-bottom: 8px;
+  }
+
+  .scan-card p { color: #666; margin-bottom: 20px; }
+
+  .upload-zone {
+    border: 3px dashed var(--blue);
+    border-radius: 16px;
+    padding: 40px 20px;
+    cursor: pointer;
+    background: #f0fffe;
+    transition: all 0.3s;
+    position: relative;
+  }
+
+  .upload-zone:hover, .upload-zone.dragover {
+    background: #d8f7f5;
+    border-color: var(--dark);
+    transform: scale(1.02);
+  }
+
+  .upload-zone input[type=file] {
+    position: absolute; inset: 0;
+    opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+
+  .upload-icon { font-size: 3rem; margin-bottom: 10px; }
+
+  .upload-zone p { margin: 0; font-weight: 700; color: var(--blue); font-size: 1.1rem; }
+  .upload-zone small { color: #999; }
+
+  /* Preview area */
+  #preview-area {
+    display: none;
+    margin-top: 20px;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  #preview-img {
+    max-width: 200px;
+    border-radius: 12px;
+    border: 3px solid var(--dark);
+    box-shadow: 4px 4px 0 var(--dark);
+  }
+
+  /* Search result */
+  .search-input-row {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+    max-width: 500px;
+    flex-wrap: wrap;
+  }
+
+  .search-input {
+    flex: 1;
+    padding: 12px 18px;
+    border: 3px solid var(--dark);
+    border-radius: 50px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    outline: none;
+    transition: box-shadow 0.2s;
+  }
+
+  .search-input:focus { box-shadow: 3px 3px 0 var(--yellow); }
+
+  .btn-primary {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1rem;
+    padding: 12px 24px;
+    background: var(--yellow);
+    border: 3px solid var(--dark);
+    border-radius: 50px;
+    cursor: pointer;
+    box-shadow: 3px 3px 0 var(--dark);
+    transition: all 0.2s;
+    color: var(--dark);
+  }
+  .btn-primary:hover { transform: translate(-2px,-2px); box-shadow: 5px 5px 0 var(--dark); }
+  .btn-primary:active { transform: translate(1px,1px); box-shadow: 1px 1px 0 var(--dark); }
+
+  .btn-success {
+    background: var(--green);
+    color: white;
+  }
+
+  .btn-red {
+    background: var(--red);
+    color: white;
+  }
+
+  /* Search results grid */
+  #search-results {
+    display: none;
+    width: 100%;
+    max-width: 600px;
+  }
+
+  #search-results h3 {
+    font-family: 'Fredoka One', cursive;
+    margin-bottom: 14px;
+    color: var(--dark);
+    font-size: 1.3rem;
+  }
+
+  .results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 12px;
+  }
+
+  .result-card {
+    border: 3px solid #ddd;
+    border-radius: 14px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: white;
+    box-shadow: 3px 3px 0 #ddd;
+  }
+
+  .result-card:hover {
+    border-color: var(--blue);
+    box-shadow: 3px 3px 0 var(--blue);
+    transform: translate(-2px,-2px);
+  }
+
+  .result-card.selected {
+    border-color: var(--yellow);
+    box-shadow: 3px 3px 0 var(--orange);
+  }
+
+  .result-card img {
+    width: 100%;
+    aspect-ratio: 2/3;
+    object-fit: contain;
+    background: #f5f5f5;
+    display: block;
+  }
+
+  .result-card .card-name {
+    padding: 6px 8px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-align: center;
+    color: var(--dark);
+    line-height: 1.2;
+  }
+
+  /* Add card form */
+  #add-form {
+    display: none;
+    width: 100%;
+    max-width: 600px;
+    background: white;
+    border: 3px solid var(--dark);
+    border-radius: 20px;
+    padding: 24px;
+    box-shadow: var(--shadow), 5px 5px 0 var(--dark);
+  }
+
+  #add-form h3 { font-family: 'Fredoka One', cursive; font-size: 1.4rem; margin-bottom: 16px; }
+
+  .add-form-inner {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  #selected-card-img {
+    width: 110px;
+    border-radius: 10px;
+    border: 3px solid var(--dark);
+    flex-shrink: 0;
+  }
+
+  .form-fields { flex: 1; min-width: 200px; }
+
+  .field-group { margin-bottom: 12px; }
+  .field-group label { display: block; font-weight: 700; font-size: 0.85rem; margin-bottom: 4px; color: #555; }
+  .field-group input, .field-group select {
+    width: 100%;
+    padding: 10px 14px;
+    border: 2px solid #ddd;
+    border-radius: 10px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .field-group input:focus, .field-group select:focus { border-color: var(--blue); }
+
+  .form-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+
+  /* === CLASSEUR / BINDER === */
+  .binder-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .binder-header h2 {
+    font-family: 'Fredoka One', cursive;
+    font-size: 2rem;
+    color: var(--dark);
+  }
+
+  .filter-bar {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+    align-items: center;
+  }
+
+  .filter-bar input {
+    padding: 9px 16px;
+    border: 2px solid #ddd;
+    border-radius: 50px;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 600;
+    font-size: 0.9rem;
+    outline: none;
+    min-width: 200px;
+  }
+
+  .filter-btn {
+    padding: 8px 16px;
+    border: 2px solid #ddd;
+    border-radius: 50px;
+    background: white;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .filter-btn:hover, .filter-btn.active { background: var(--yellow); border-color: var(--dark); }
+
+  /* Binder grid */
+  .binder-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 20px;
+  }
+
+  .binder-card {
+    background: white;
+    border: 3px solid var(--dark);
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 4px 4px 0 var(--dark);
+    transition: all 0.25s;
+    cursor: pointer;
+    position: relative;
+  }
+
+  .binder-card:hover { transform: translate(-3px,-3px) rotate(-1deg); box-shadow: 7px 7px 0 var(--dark); }
+
+  .binder-card img {
+    width: 100%;
+    aspect-ratio: 2/3;
+    object-fit: contain;
+    background: linear-gradient(135deg, #f0f0f0, #e8e8e8);
+    display: block;
+  }
+
+  .binder-card-info {
+    padding: 10px 12px;
+    border-top: 2px solid #f0f0f0;
+  }
+
+  .binder-card-name {
+    font-weight: 800;
+    font-size: 0.85rem;
+    color: var(--dark);
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .binder-card-set {
+    font-size: 0.72rem;
+    color: #888;
+    margin-bottom: 6px;
+  }
+
+  .price-badge {
+    display: inline-block;
+    background: var(--yellow);
+    border: 2px solid var(--dark);
+    border-radius: 50px;
+    padding: 3px 10px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.9rem;
+    color: var(--dark);
+  }
+
+  .rarity-dot {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+  }
+
+  .qty-badge {
+    position: absolute;
+    top: 8px; left: 8px;
+    background: var(--dark);
+    color: white;
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.8rem;
+    padding: 2px 8px;
+    border-radius: 50px;
+    border: 2px solid white;
+  }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #aaa;
+  }
+  .empty-state .emoji { font-size: 5rem; margin-bottom: 16px; }
+  .empty-state h3 { font-family: 'Fredoka One', cursive; font-size: 1.8rem; color: #ccc; }
+  .empty-state p { margin-top: 8px; }
+
+  /* === MODAL === */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 100;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    backdrop-filter: blur(4px);
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: white;
+    border: 3px solid var(--dark);
+    border-radius: 24px;
+    padding: 28px;
+    max-width: 420px;
+    width: 100%;
+    box-shadow: 8px 8px 0 var(--dark);
+    animation: popIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+
+  @keyframes popIn { from { transform: scale(0.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+  .modal h2 { font-family: 'Fredoka One', cursive; font-size: 1.6rem; margin-bottom: 16px; }
+
+  .modal-card-view { display: flex; gap: 20px; flex-wrap: wrap; }
+  .modal-card-view img { width: 130px; border-radius: 10px; border: 3px solid var(--dark); flex-shrink: 0; }
+  .modal-details { flex: 1; min-width: 150px; }
+  .modal-details .detail-row { margin-bottom: 10px; }
+  .modal-details .detail-label { font-size: 0.75rem; color: #888; font-weight: 700; text-transform: uppercase; }
+  .modal-details .detail-value { font-size: 1rem; font-weight: 800; color: var(--dark); }
+  .modal-big-price {
+    font-family: 'Fredoka One', cursive;
+    font-size: 2rem;
+    color: var(--orange);
+    text-shadow: 2px 2px 0 rgba(0,0,0,0.1);
+    margin-top: 8px;
+  }
+
+  .modal-actions { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+
+  /* Inline edit in modal */
+  .inline-edit {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+  }
+  .inline-edit input {
+    width: 100px;
+    padding: 6px 10px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: 0.95rem;
+  }
+  .inline-edit button {
+    padding: 6px 12px;
+    background: var(--green);
+    border: 2px solid var(--dark);
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 700;
+    color: white;
+    font-size: 0.85rem;
+  }
+
+  /* === STATS PAGE === */
+  .stats-page h2 {
+    font-family: 'Fredoka One', cursive;
+    font-size: 2rem;
+    color: var(--dark);
+    margin-bottom: 20px;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 30px;
+  }
+
+  .stat-card {
+    background: white;
+    border: 3px solid var(--dark);
+    border-radius: 20px;
+    padding: 22px 18px;
+    box-shadow: 4px 4px 0 var(--dark);
+    text-align: center;
+  }
+
+  .stat-card .stat-emoji { font-size: 2.5rem; margin-bottom: 8px; }
+  .stat-card .stat-title { font-size: 0.8rem; font-weight: 700; color: #888; text-transform: uppercase; }
+  .stat-card .stat-num {
+    font-family: 'Fredoka One', cursive;
+    font-size: 2.2rem;
+    color: var(--dark);
+    line-height: 1;
+    margin: 4px 0;
+  }
+  .stat-card .stat-sub { font-size: 0.8rem; color: #aaa; }
+
+  .top-cards h3 {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.5rem;
+    color: var(--dark);
+    margin-bottom: 14px;
+  }
+
+  .top-card-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: white;
+    border: 2px solid #eee;
+    border-radius: 14px;
+    padding: 12px;
+    margin-bottom: 10px;
+    box-shadow: 3px 3px 0 #eee;
+    transition: all 0.2s;
+  }
+  .top-card-row:hover { border-color: var(--yellow); box-shadow: 3px 3px 0 var(--yellow); }
+
+  .top-rank {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.8rem;
+    color: var(--yellow);
+    text-shadow: 1px 1px 0 #ccc;
+    width: 36px;
+    text-align: center;
+  }
+  .top-rank.rank-1 { color: #FFD700; font-size: 2rem; }
+  .top-rank.rank-2 { color: #C0C0C0; }
+  .top-rank.rank-3 { color: #CD7F32; }
+
+  .top-card-row img { width: 60px; border-radius: 8px; border: 2px solid #ddd; }
+  .top-card-info { flex: 1; }
+  .top-card-info .tc-name { font-weight: 800; font-size: 0.95rem; }
+  .top-card-info .tc-set { font-size: 0.75rem; color: #888; }
+  .top-card-price { font-family: 'Fredoka One', cursive; font-size: 1.4rem; color: var(--orange); }
+
+  /* Loading spinner */
+  .spinner {
+    display: inline-block;
+    width: 24px; height: 24px;
+    border: 3px solid rgba(0,0,0,0.1);
+    border-top-color: var(--blue);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-row { display: flex; align-items: center; gap: 10px; padding: 12px; color: #888; font-weight: 700; }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--dark);
+    color: white;
+    padding: 14px 24px;
+    border-radius: 50px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    z-index: 999;
+    transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+    border: 2px solid rgba(255,255,255,0.1);
+    white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* Condition badges */
+  .cond-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 50px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    border: 2px solid;
+  }
+  .cond-mint { background: #d4edda; border-color: #28a745; color: #155724; }
+  .cond-exc { background: #cce5ff; border-color: #004085; color: #004085; }
+  .cond-good { background: #fff3cd; border-color: #856404; color: #856404; }
+  .cond-poor { background: #f8d7da; border-color: #721c24; color: #721c24; }
+
+  @media (max-width: 500px) {
+    .binder-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .results-grid { grid-template-columns: repeat(2, 1fr); }
+    header h1 { font-size: 1.8rem; }
+    .pokeball-icon { width: 32px; height: 32px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Decorative balls -->
+<div class="deco-ball"></div>
+<div class="deco-ball"></div>
+<div class="deco-ball"></div>
+
+<!-- BANNER GITHUB PAGES -->
+<div id="deploy-banner" style="background:#1a1a2e;color:white;padding:10px 16px;text-align:center;font-family:'Nunito',sans-serif;font-size:0.85rem;font-weight:700;border-bottom:3px solid #FFD93D;display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;">
+  <span>⚠️ Images bloquées sur iOS en mode local</span>
+  <button onclick="document.getElementById('deploy-modal').style.display='flex'" style="background:#FFD93D;border:none;border-radius:20px;padding:6px 14px;font-weight:800;cursor:pointer;font-family:'Fredoka One',cursive;font-size:0.9rem;">🚀 Activer en 2 min</button>
+  <button onclick="document.getElementById('deploy-banner').style.display='none'" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:20px;padding:6px 12px;color:white;cursor:pointer;font-size:0.8rem;">✕</button>
+</div>
+
+<!-- MODAL DEPLOY -->
+<div id="deploy-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:200;align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:white;border-radius:24px;padding:28px;max-width:420px;width:100%;border:3px solid #1a1a2e;box-shadow:8px 8px 0 #1a1a2e;max-height:90vh;overflow-y:auto;">
+    <h2 style="font-family:'Fredoka One',cursive;font-size:1.8rem;margin-bottom:4px;">🚀 Activer les images</h2>
+    <p style="color:#888;font-size:0.9rem;margin-bottom:20px;">Héberge l'app sur GitHub Pages (gratuit) pour débloquer toutes les images et le scan auto.</p>
+    <div style="background:#f8f8f8;border-radius:12px;padding:16px;margin-bottom:16px;">
+      <div style="font-weight:800;margin-bottom:10px;font-size:0.95rem;">📋 3 étapes :</div>
+      <div style="margin-bottom:8px;font-size:0.9rem;">1️⃣ Va sur <strong>github.com</strong> → crée un compte gratuit</div>
+      <div style="margin-bottom:8px;font-size:0.9rem;">2️⃣ Crée un <strong>nouveau repository</strong> public → nomme-le <code style="background:#eee;padding:2px 6px;border-radius:4px;">pokemon-classeur</code></div>
+      <div style="margin-bottom:8px;font-size:0.9rem;">3️⃣ Uploade ce fichier HTML → va dans <strong>Settings → Pages → Deploy from main</strong></div>
+    </div>
+    <div style="background:#fff3cd;border-radius:12px;padding:12px;margin-bottom:16px;font-size:0.85rem;">
+      ✅ Ton app sera accessible à :<br>
+      <strong>https://TON-PSEUDO.github.io/pokemon-classeur</strong><br>
+      Images ✓ · Scan auto ✓ · Accessible depuis iPhone ✓
+    </div>
+    <button onclick="document.getElementById('deploy-modal').style.display='none'" style="width:100%;padding:12px;background:#1a1a2e;color:white;border:none;border-radius:12px;font-family:'Fredoka One',cursive;font-size:1.1rem;cursor:pointer;">Compris, je le fais !</button>
+  </div>
+</div>
+
+
+<header>
+  <h1>
+    <span class="pokeball-icon"></span>
+    Mon Classeur Pokémon
+    <span class="pokeball-icon"></span>
+  </h1>
+  <p>✨ Scanne tes cartes • Trouve les prix • Suis ta collection !</p>
+</header>
+
+<!-- STATS BAR -->
+<div class="stats-bar">
+  <div class="stat-chip">
+    <span class="emoji">🎴</span>
+    <div>
+      <span class="label">Cartes</span>
+      <span class="value" id="total-cards">0</span>
+    </div>
+  </div>
+  <div class="stat-chip">
+    <span class="emoji">🎲</span>
+    <div>
+      <span class="label">Pokémon</span>
+      <span class="value" id="unique-pokemon">0</span>
+    </div>
+  </div>
+  <div class="stat-chip total-value-chip">
+    <span class="emoji">💰</span>
+    <div>
+      <span class="label">Valeur totale</span>
+      <span class="value" id="total-value">0,00 €</span>
+    </div>
+  </div>
+  <div class="stat-chip">
+    <span class="emoji">⭐</span>
+    <div>
+      <span class="label">Carte top</span>
+      <span class="value" id="top-card-stat">—</span>
+    </div>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav>
+  <button class="nav-btn active" onclick="switchTab('scan')">📷 Ajouter une carte</button>
+  <button class="nav-btn" onclick="switchTab('binder')">📖 Mon Classeur</button>
+  <button class="nav-btn" onclick="switchTab('stats')">📊 Mes Stats</button>
+</nav>
+
+<!-- MAIN -->
+<main>
+
+  <!-- ===== TAB: SCAN ===== -->
+  <div class="tab-content active" id="tab-scan">
+    <div class="scan-section">
+
+      <!-- Upload zone -->
+      <div class="scan-card">
+        <h2>📷 Ajouter une carte</h2>
+        <p>Prends en photo ta carte ou cherche son nom pour trouver la belle image officielle !</p>
+        <div class="upload-zone" id="upload-zone">
+          <input type="file" id="file-input" accept="image/*" onchange="handleFileUpload(event)">
+          <div class="upload-icon">📸</div>
+          <p>Clique ou glisse une photo ici</p>
+          <small>JPG, PNG, WEBP acceptés</small>
+        </div>
+        <div id="preview-area">
+          <img id="preview-img" src="" alt="Preview">
+          <p style="color:#888; font-size:0.9rem; font-weight:600;">Image chargée ! Recherche la carte ci-dessous.</p>
+        </div>
+      </div>
+
+      <!-- Search -->
+      <div class="scan-card">
+        <h2>🔍 Chercher la carte</h2>
+        <p>Entre le nom du Pokémon ou le numéro de la carte</p>
+        <div class="search-input-row">
+          <input type="text" class="search-input" id="search-input" placeholder="Ex: Dracaufeu, Pikachu, Mewtwo..." onkeydown="if(event.key==='Enter')searchCard()">
+          <button class="btn-primary" onclick="searchCard()">🔍 Chercher</button>
+        </div>
+      </div>
+
+      <!-- Results -->
+      <div id="search-results">
+        <h3 id="results-title">Résultats de recherche</h3>
+        <div class="results-grid" id="results-grid"></div>
+      </div>
+
+      <!-- Add form -->
+      <div id="add-form">
+        <h3>➕ Ajouter au classeur</h3>
+        <div class="add-form-inner">
+          <img id="selected-card-img" src="" alt="">
+          <div class="form-fields">
+            <div class="field-group">
+              <label>Nom de la carte</label>
+              <input type="text" id="f-name" placeholder="Ex: Dracaufeu">
+            </div>
+            <div class="field-group">
+              <label>Extension / Set</label>
+              <input type="text" id="f-set" placeholder="Ex: Base Set, XY...">
+            </div>
+            <div class="field-group">
+              <label>💰 Valeur estimée (€)</label>
+              <input type="number" id="f-price" step="0.01" min="0" placeholder="0.00">
+            </div>
+            <div class="field-group">
+              <label>Condition</label>
+              <select id="f-condition">
+                <option value="mint">✨ Mint (Parfaite)</option>
+                <option value="exc">💙 Excellent</option>
+                <option value="good">🟡 Bon état</option>
+                <option value="poor">🔴 Usée</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label>Quantité</label>
+              <input type="number" id="f-qty" value="1" min="1">
+            </div>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn-primary btn-success" onclick="addCardToCollection()">✅ Ajouter au classeur</button>
+          <button class="btn-primary btn-red" onclick="cancelAdd()">✖ Annuler</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== TAB: BINDER ===== -->
+  <div class="tab-content" id="tab-binder">
+    <div class="binder-header">
+      <h2>📖 Mon Classeur</h2>
+      <button class="btn-primary" onclick="switchTab('scan')">+ Ajouter une carte</button>
+    </div>
+    <div class="filter-bar">
+      <input type="text" id="filter-input" placeholder="🔍 Filtrer par nom..." oninput="filterCards()">
+      <button class="filter-btn active" onclick="setSort('name', this)">A-Z</button>
+      <button class="filter-btn" onclick="setSort('price', this)">💰 Prix</button>
+      <button class="filter-btn" onclick="setSort('date', this)">🕐 Récent</button>
+    </div>
+    <div class="binder-grid" id="binder-grid">
+      <div class="empty-state" style="grid-column:1/-1">
+        <div class="emoji">🎴</div>
+        <h3>Classeur vide !</h3>
+        <p>Ajoute ta première carte en cliquant sur <strong>"Ajouter une carte"</strong></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TAB: STATS ===== -->
+  <div class="tab-content" id="tab-stats">
+    <div class="stats-page">
+      <h2>📊 Statistiques de ma collection</h2>
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat-card">
+          <div class="stat-emoji">🎴</div>
+          <div class="stat-title">Total cartes</div>
+          <div class="stat-num" id="s-total">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-emoji">💰</div>
+          <div class="stat-title">Valeur totale</div>
+          <div class="stat-num" id="s-value" style="font-size:1.6rem">0,00 €</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-emoji">📈</div>
+          <div class="stat-title">Valeur moyenne</div>
+          <div class="stat-num" id="s-avg" style="font-size:1.6rem">0,00 €</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-emoji">🏆</div>
+          <div class="stat-title">Carte la + chère</div>
+          <div class="stat-num" id="s-top" style="font-size:1.5rem; color:var(--orange)">—</div>
+          <div class="stat-sub" id="s-top-name"></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-emoji">✨</div>
+          <div class="stat-title">En parfait état</div>
+          <div class="stat-num" id="s-mint">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-emoji">🎲</div>
+          <div class="stat-title">Pokémon différents</div>
+          <div class="stat-num" id="s-unique">0</div>
+        </div>
+      </div>
+      <div class="top-cards">
+        <h3>🏅 Mes 5 cartes les plus précieuses</h3>
+        <div id="top-list"></div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- MODAL DETAIL -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal">
+    <h2 id="modal-title">Détail carte</h2>
+    <div class="modal-card-view">
+      <img id="modal-img" src="" alt="">
+      <div class="modal-details">
+        <div class="detail-row">
+          <div class="detail-label">Extension</div>
+          <div class="detail-value" id="modal-set">—</div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Condition</div>
+          <div class="detail-value" id="modal-cond">—</div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Quantité</div>
+          <div class="detail-value" id="modal-qty">1</div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Valeur estimée</div>
+          <div class="modal-big-price" id="modal-price">0,00 €</div>
+          <div class="inline-edit">
+            <input type="number" id="modal-price-edit" step="0.01" placeholder="Modifier...">
+            <button onclick="updatePrice()">✔</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-primary btn-red" onclick="deleteCurrentCard()">🗑️ Supprimer</button>
+      <button class="btn-primary" onclick="document.getElementById('modal-overlay').classList.remove('open')">✖ Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// =================== STORAGE ===================
+let collection = JSON.parse(localStorage.getItem('pokemon-collection') || '[]');
+let currentSort = 'name';
+let selectedCardData = null;
+let currentModalId = null;
+
+function save() {
+  localStorage.setItem('pokemon-collection', JSON.stringify(collection));
+}
+
+// =================== TABS ===================
+function switchTab(name) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  document.querySelectorAll('.nav-btn')[['scan','binder','stats'].indexOf(name)].classList.add('active');
+  if (name === 'binder') renderBinder();
+  if (name === 'stats') renderStats();
+  updateStatsBar();
+}
+
+
+// =================== BASE DE DONNÉES LOCALE (200+ Pokémon) ===================
+const CARD_DB = [
+  {id:'base1-58',en:'Pikachu',fr:'Pikachu',set:'Base Set',price:8},
+  {id:'base2-58',en:'Pikachu',fr:'Pikachu',set:'Base Set 2',price:5},
+  {id:'jungle-60',en:'Pikachu',fr:'Pikachu',set:'Jungle',price:6},
+  {id:'swsh4-57',en:'Pikachu',fr:'Pikachu',set:'Vivid Voltage',price:2},
+  {id:'xy1-42',en:'Pikachu',fr:'Pikachu',set:'XY',price:2},
+  {id:'base1-4',en:'Charizard',fr:'Dracaufeu',set:'Base Set',price:350},
+  {id:'base2-4',en:'Charizard',fr:'Dracaufeu',set:'Base Set 2',price:180},
+  {id:'xy12-11',en:'Charizard',fr:'Dracaufeu',set:'Evolutions',price:20},
+  {id:'sm35-9',en:'Charizard GX',fr:'Dracaufeu GX',set:'Hidden Fates',price:60},
+  {id:'swsh9-17',en:'Charizard V',fr:'Dracaufeu V',set:'Brilliant Stars',price:15},
+  {id:'swsh9-18',en:'Charizard VSTAR',fr:'Dracaufeu VSTAR',set:'Brilliant Stars',price:35},
+  {id:'sv3-6',en:'Charizard ex',fr:'Dracaufeu ex',set:'Obsidian Flames',price:25},
+  {id:'base1-10',en:'Mewtwo',fr:'Mewtwo',set:'Base Set',price:40},
+  {id:'base2-10',en:'Mewtwo',fr:'Mewtwo',set:'Base Set 2',price:25},
+  {id:'xy12-51',en:'Mewtwo',fr:'Mewtwo',set:'Evolutions',price:5},
+  {id:'sm75-78',en:'Mewtwo GX',fr:'Mewtwo GX',set:'Shining Legends',price:30},
+  {id:'swsh1-75',en:'Mewtwo V',fr:'Mewtwo V',set:'Sword and Shield',price:8},
+  {id:'base1-44',en:'Bulbasaur',fr:'Bulbizarre',set:'Base Set',price:10},
+  {id:'xy12-1',en:'Bulbasaur',fr:'Bulbizarre',set:'Evolutions',price:4},
+  {id:'base1-1',en:'Venusaur',fr:'Florizarre',set:'Base Set',price:60},
+  {id:'base1-46',en:'Charmander',fr:'Salamèche',set:'Base Set',price:15},
+  {id:'xy12-19',en:'Charmander',fr:'Salamèche',set:'Evolutions',price:5},
+  {id:'base1-24',en:'Charmeleon',fr:'Reptincel',set:'Base Set',price:12},
+  {id:'base1-63',en:'Squirtle',fr:'Carapuce',set:'Base Set',price:12},
+  {id:'xy12-29',en:'Squirtle',fr:'Carapuce',set:'Evolutions',price:5},
+  {id:'base1-2',en:'Blastoise',fr:'Tortank',set:'Base Set',price:80},
+  {id:'jungle-51',en:'Eevee',fr:'Évoli',set:'Jungle',price:8},
+  {id:'sm75-51',en:'Eevee',fr:'Évoli',set:'Shining Legends',price:4},
+  {id:'swsh4-152',en:'Eevee V',fr:'Évoli V',set:'Vivid Voltage',price:10},
+  {id:'fossil-5',en:'Gengar',fr:'Ectoplasma',set:'Fossil',price:60},
+  {id:'swsh7-57',en:'Gengar V',fr:'Ectoplasma V',set:'Fusion Strike',price:6},
+  {id:'jungle-11',en:'Snorlax',fr:'Ronflex',set:'Jungle',price:20},
+  {id:'base2-11',en:'Snorlax',fr:'Ronflex',set:'Base Set 2',price:10},
+  {id:'swsh1-131',en:'Snorlax',fr:'Ronflex',set:'Sword and Shield',price:2},
+  {id:'fossil-4',en:'Dragonite',fr:'Dracolosse',set:'Fossil',price:35},
+  {id:'dp2-6',en:'Lucario',fr:'Lucario',set:'Diamond and Pearl',price:15},
+  {id:'swsh4-140',en:'Lucario V',fr:'Lucario V',set:'Vivid Voltage',price:8},
+  {id:'swsh4-141',en:'Lucario VMAX',fr:'Lucario VMAX',set:'Vivid Voltage',price:15},
+  {id:'swsh7-79',en:'Gardevoir V',fr:'Gardevoir V',set:'Fusion Strike',price:5},
+  {id:'sv2-61',en:'Gardevoir ex',fr:'Gardevoir ex',set:'Paldea Evolved',price:12},
+  {id:'ex7-97',en:'Rayquaza',fr:'Rayquaza',set:'Deoxys',price:30},
+  {id:'sm8-61',en:'Rayquaza GX',fr:'Rayquaza GX',set:'Celestial Storm',price:20},
+  {id:'swsh7-110',en:'Rayquaza VMAX',fr:'Rayquaza VMAX',set:'Evolving Skies',price:40},
+  {id:'neo1-9',en:'Lugia',fr:'Lugia',set:'Neo Genesis',price:200},
+  {id:'swsh10-138',en:'Lugia VSTAR',fr:'Lugia VSTAR',set:'Silver Tempest',price:80},
+  {id:'neo2-16',en:'Ho-Oh',fr:'Ho-Oh',set:'Neo Revelation',price:60},
+  {id:'sm3-21',en:'Ho-Oh GX',fr:'Ho-Oh GX',set:'Burning Shadows',price:10},
+  {id:'sm75-29',en:'Shining Mew',fr:'Mew Brillant',set:'Shining Legends',price:15},
+  {id:'swsh9-232',en:'Mew VMAX',fr:'Mew VMAX',set:'Fusion Strike',price:60},
+  {id:'neo1-13',en:'Umbreon',fr:'Noctali',set:'Neo Discovery',price:50},
+  {id:'swsh7-94',en:'Umbreon V',fr:'Noctali V',set:'Evolving Skies',price:20},
+  {id:'swsh7-95',en:'Umbreon VMAX',fr:'Noctali VMAX',set:'Evolving Skies',price:60},
+  {id:'neo1-1',en:'Espeon',fr:'Mentali',set:'Neo Discovery',price:40},
+  {id:'swsh7-64',en:'Espeon VMAX',fr:'Mentali VMAX',set:'Evolving Skies',price:20},
+  {id:'xy5-72',en:'Sylveon',fr:'Sylveon',set:'Primal Clash',price:6},
+  {id:'swsh7-76',en:'Sylveon V',fr:'Sylveon V',set:'Evolving Skies',price:8},
+  {id:'swsh7-74',en:'Sylveon VMAX',fr:'Sylveon VMAX',set:'Evolving Skies',price:12},
+  {id:'jungle-1',en:'Clefable',fr:'Méloféé',set:'Jungle',price:12},
+  {id:'base1-5',en:'Clefairy',fr:'Mélofée',set:'Base Set',price:20},
+  {id:'base1-12',en:'Ninetales',fr:'Feunard',set:'Base Set',price:25},
+  {id:'fossil-2',en:'Articuno',fr:'Artikodin',set:'Fossil',price:40},
+  {id:'fossil-15',en:'Zapdos',fr:'Électhor',set:'Fossil',price:35},
+  {id:'fossil-12',en:'Moltres',fr:'Sulfura',set:'Fossil',price:30},
+  {id:'base1-18',en:'Dragonair',fr:'Draco',set:'Base Set',price:20},
+  {id:'base1-9',en:'Gyarados',fr:'Léviator',set:'Base Set',price:45},
+  {id:'jungle-5',en:'Kangaskhan',fr:'Kangourex',set:'Jungle',price:18},
+  {id:'jungle-10',en:'Scyther',fr:'Insécateur',set:'Jungle',price:20},
+  {id:'jungle-12',en:'Vaporeon',fr:'Aquali',set:'Jungle',price:20},
+  {id:'jungle-3',en:'Flareon',fr:'Pyroli',set:'Jungle',price:20},
+  {id:'jungle-4',en:'Jolteon',fr:'Voltali',set:'Jungle',price:20},
+  {id:'base1-56',en:'Meowth',fr:'Miaouss',set:'Base Set',price:5},
+  {id:'fossil-53',en:'Psyduck',fr:'Psykokwak',set:'Fossil',price:5},
+  {id:'fossil-18',en:'Ditto',fr:'Métamorph',set:'Fossil',price:30},
+  {id:'fossil-8',en:'Hypno',fr:'Hypnomade',set:'Fossil',price:15},
+  {id:'base1-54',en:'Jigglypuff',fr:'Rondoudou',set:'Base Set',price:5},
+  {id:'jungle-54',en:'Jigglypuff',fr:'Rondoudou',set:'Jungle',price:4},
+  {id:'neo1-48',en:'Togepi',fr:'Togepi',set:'Neo Genesis',price:6},
+  {id:'neo2-3',en:'Celebi',fr:'Célébi',set:'Neo Revelation',price:40},
+  {id:'swsh7-19',en:'Celebi V',fr:'Célébi V',set:'Evolving Skies',price:8},
+  {id:'neo2-6',en:'Entei',fr:'Entei',set:'Neo Revelation',price:30},
+  {id:'neo2-14',en:'Raikou',fr:'Raikou',set:'Neo Revelation',price:30},
+  {id:'neo2-15',en:'Suicune',fr:'Suicune',set:'Neo Revelation',price:35},
+  {id:'neo1-1',en:'Ampharos',fr:'Pharamp',set:'Neo Genesis',price:15},
+  {id:'neo1-17',en:'Typhlosion',fr:'Typhlosion',set:'Neo Genesis',price:20},
+  {id:'neo1-4',en:'Feraligatr',fr:'Aligatueur',set:'Neo Genesis',price:25},
+  {id:'neo1-10',en:'Meganium',fr:'Méganium',set:'Neo Genesis',price:18},
+  {id:'neo4-22',en:'Tyranitar',fr:'Tyranocif',set:'Neo Destiny',price:30},
+  {id:'swsh7-111',en:'Tyranitar V',fr:'Tyranocif V',set:'Evolving Skies',price:8},
+  {id:'neo2-4',en:'Crobat',fr:'Nostenfer',set:'Neo Genesis',price:20},
+  {id:'neo1-3',en:'Blissey',fr:'Leuphorie',set:'Neo Genesis',price:15},
+  {id:'neo2-10',en:'Scizor',fr:'Cizayox',set:'Neo Revelation',price:20},
+  {id:'neo2-7',en:'Heracross',fr:'Scarhino',set:'Neo Revelation',price:15},
+  {id:'neo4-8',en:'Houndoom',fr:'Démolosse',set:'Neo Destiny',price:15},
+  {id:'ex7-8',en:'Latias',fr:'Latias',set:'EX Deoxys',price:15},
+  {id:'ex7-9',en:'Latios',fr:'Latios',set:'EX Deoxys',price:15},
+  {id:'ex1-3',en:'Blaziken',fr:'Braségali',set:'Ruby and Sapphire',price:10},
+  {id:'ex1-16',en:'Swampert',fr:'Laggron',set:'Ruby and Sapphire',price:10},
+  {id:'ex1-11',en:'Sceptile',fr:'Jungko',set:'Ruby and Sapphire',price:10},
+  {id:'ex4-11',en:'Salamence',fr:'Dracion',set:'Dragon',price:12},
+  {id:'ex4-4',en:'Flygon',fr:'Libégon',set:'Dragon',price:10},
+  {id:'ex9-1',en:'Absol',fr:'Absol',set:'Team Magma vs Aqua',price:12},
+  {id:'dp1-1',en:'Dialga',fr:'Dialga',set:'Diamond and Pearl',price:8},
+  {id:'swsh10-185',en:'Dialga VSTAR',fr:'Dialga VSTAR',set:'Astral Radiance',price:30},
+  {id:'dp1-11',en:'Palkia',fr:'Palkia',set:'Diamond and Pearl',price:8},
+  {id:'swsh10-40',en:'Palkia VSTAR',fr:'Palkia VSTAR',set:'Astral Radiance',price:15},
+  {id:'pl1-9',en:'Giratina',fr:'Giratina',set:'Platinum',price:12},
+  {id:'swsh11-130',en:'Giratina VSTAR',fr:'Giratina VSTAR',set:'Lost Origin',price:40},
+  {id:'pl4-1',en:'Arceus',fr:'Arceus',set:'Arceus',price:20},
+  {id:'swsh9-166',en:'Arceus V',fr:'Arceus V',set:'Brilliant Stars',price:20},
+  {id:'swsh9-123',en:'Arceus VSTAR',fr:'Arceus VSTAR',set:'Brilliant Stars',price:25},
+  {id:'bw1-26',en:'Reshiram',fr:'Reshiram',set:'Black and White',price:6},
+  {id:'bw1-47',en:'Zekrom',fr:'Zekrom',set:'Black and White',price:6},
+  {id:'bw6-52',en:'Kyurem',fr:'Kyurem',set:'Boundaries Crossed',price:5},
+  {id:'xy1-96',en:'Xerneas',fr:'Xerneas',set:'XY',price:5},
+  {id:'xy1-79',en:'Yveltal',fr:'Yveltal',set:'XY',price:5},
+  {id:'sm1-89',en:'Solgaleo GX',fr:'Solgaleo GX',set:'Sun and Moon',price:15},
+  {id:'sm1-66',en:'Lunala GX',fr:'Lunala GX',set:'Sun and Moon',price:12},
+  {id:'swsh1-138',en:'Zacian V',fr:'Zacian V',set:'Sword and Shield',price:20},
+  {id:'swsh1-139',en:'Zamazenta V',fr:'Zamazenta V',set:'Sword and Shield',price:10},
+  {id:'sv1-254',en:'Koraidon ex',fr:'Koraidon ex',set:'Scarlet and Violet',price:30},
+  {id:'sv1-255',en:'Miraidon ex',fr:'Miraidon ex',set:'Scarlet and Violet',price:30},
+  {id:'xy6-68',en:'Pancham',fr:'Pandespiègle',set:'Roaring Skies',price:1},
+  {id:'xy7-68',en:'Pancham',fr:'Pandespiègle',set:'Ancient Origins',price:1},
+  {id:'sm5-100',en:'Pancham',fr:'Pandespiègle',set:'Ultra Prism',price:1},
+  {id:'swsh1-127',en:'Pancham',fr:'Pandespiègle',set:'Sword and Shield',price:1},
+  {id:'sv2-128',en:'Pancham',fr:'Pandespiègle',set:'Paldea Evolved',price:1},
+  {id:'xy6-69',en:'Pangoro',fr:'Pandarbare',set:'Roaring Skies',price:2},
+  {id:'swsh1-128',en:'Pangoro',fr:'Pandarbare',set:'Sword and Shield',price:2},
+  {id:'base1-8',en:'Machamp',fr:'Mackogneur',set:'Base Set',price:15},
+  {id:'base1-1',en:'Alakazam',fr:'Alakazam',set:'Base Set',price:30},
+  {id:'dp2-4',en:'Infernape',fr:'Simiabraz',set:'Mysterious Treasures',price:12},
+  {id:'dp1-4',en:'Empoleon',fr:'Pingoléon',set:'Diamond and Pearl',price:10},
+  {id:'dp1-11',en:'Torterra',fr:'Tortipouss',set:'Diamond and Pearl',price:8},
+  {id:'dp5-4',en:'Darkrai',fr:'Darkrai',set:'Great Encounters',price:20},
+  {id:'bw9-88',en:'Darkrai EX',fr:'Darkrai EX',set:'Dark Explorers',price:15},
+  {id:'xy12-77',en:'Shaymin EX',fr:'Shaymin EX',set:'Roaring Skies',price:15},
+  {id:'bw2-98',en:'Victini',fr:'Victini',set:'Noble Victories',price:8},
+  {id:'xy1-41',en:'Greninja',fr:'Amphinobi',set:'XY',price:8},
+  {id:'xy12-41',en:'Greninja BREAK',fr:'Amphinobi BREAK',set:'BREAKpoint',price:12},
+  {id:'sm4-58',en:'Mimikyu',fr:'Mimiqui',set:'Guardians Rising',price:4},
+  {id:'sm2-60',en:'Tapu Lele GX',fr:'Tokopisco GX',set:'Guardians Rising',price:15},
+  {id:'sm2-51',en:'Tapu Koko',fr:'Tokopiyon',set:'Guardians Rising',price:8},
+  {id:'swsh3-116',en:'Eternatus VMAX',fr:'Éternatus VMAX',set:'Darkness Ablaze',price:25},
+  {id:'swsh9-232',en:'Mew VMAX',fr:'Mew VMAX',set:'Fusion Strike',price:60},
+  {id:'bw3-71',en:'Zoroark',fr:'Zoroark',set:'Noble Victories',price:8},
+  {id:'sm3-53',en:'Zoroark GX',fr:'Zoroark GX',set:'Shining Legends',price:15},
+  {id:'dp6-5',en:'Garchomp',fr:'Carchacrok',set:'Majestic Dawn',price:15},
+  {id:'swsh7-116',en:'Garchomp V',fr:'Carchacrok V',set:'Evolving Skies',price:5},
+  {id:'base1-52',en:'Magikarp',fr:'Magicarpe',set:'Base Set',price:8},
+  {id:'xy12-23',en:'Magikarp',fr:'Magicarpe',set:'Evolutions',price:3},
+  {id:'base1-14',en:'Rapidash',fr:'Galopa',set:'Base Set',price:10},
+  {id:'fossil-14',en:'Slowbro',fr:'Flagadoss',set:'Fossil',price:12},
+  {id:'neo2-8',en:'Kingdra',fr:'Hyporoi',set:'Neo Genesis',price:25},
+  {id:'ex5-9',en:'Jirachi',fr:'Jirachi',set:'Emerald',price:20},
+  {id:'swsh2-99',en:'Jirachi',fr:'Jirachi',set:'Rebel Clash',price:3},
+  {id:'dp5-11',en:'Togekiss',fr:'Togekiss',set:'Great Encounters',price:15},
+  {id:'swsh2-167',en:'Togekiss VMAX',fr:'Togekiss VMAX',set:'Rebel Clash',price:10},
+  {id:'swsh2-71',en:'Toxtricity V',fr:'Salarsen V',set:'Rebel Clash',price:5},
+  {id:'sm8-86',en:'Zeraora GX',fr:'Zeraora GX',set:'Forbidden Light',price:12},
+  {id:'sm8-63',en:'Necrozma GX',fr:'Necrozma GX',set:'Burning Shadows',price:10},
+  {id:'sm1-43',en:'Primarina GX',fr:'Cancrelove GX',set:'Sun and Moon',price:8},
+  {id:'sm1-27',en:'Incineroar GX',fr:'Félinferno GX',set:'Sun and Moon',price:10},
+  {id:'sm1-12',en:'Decidueye GX',fr:'Archéduc GX',set:'Sun and Moon',price:10},
+  {id:'swsh6-75',en:'Calyrex V',fr:'Calyrex V',set:'Chilling Reign',price:5},
+  {id:'swsh10-186',en:'Lugia V',fr:'Lugia V',set:'Silver Tempest',price:30},
+  {id:'xy9-73',en:'Zygarde',fr:'Zygarde',set:'BREAKthrough',price:5},
+  {id:'ex7-15',en:'Deoxys',fr:'Déoxys',set:'EX Deoxys',price:15},
+  {id:'base1-21',en:'Electrode',fr:'Électrode',set:'Base Set',price:10},
+  {id:'jungle-16',en:'Wigglytuff',fr:'Grodoudou',set:'Jungle',price:10},
+  {id:'base1-39',en:'Porygon',fr:'Porygon',set:'Base Set',price:6},
+  {id:'neo3-21',en:'Porygon2',fr:'Porygon2',set:'Neo Discovery',price:15},
+  {id:'dp2-36',en:'Porygon-Z',fr:'Porygon-Z',set:'Mysterious Treasures',price:10},
+  {id:'swsh5-157',en:'Porygon-Z VMAX',fr:'Porygon-Z VMAX',set:'Battle Styles',price:8},
+  {id:'neo4-29',en:'Wobbuffet',fr:'Qulbutoke',set:'Neo Destiny',price:5},
+  {id:'neo2-27',en:'Sudowoodo',fr:'Simularbre',set:'Neo Revelation',price:5},
+  {id:'neo1-28',en:'Marill',fr:'Marill',set:'Neo Genesis',price:5},
+  {id:'neo1-16',en:'Togekiss',fr:'Togekiss',set:'Neo Genesis',price:15},
+  {id:'neo2-14',en:'Slowking',fr:'Roigada',set:'Neo Revelation',price:20},
+  {id:'neo1-6',en:'Lanturn',fr:'Lanturn',set:'Neo Genesis',price:10},
+  {id:'neo2-15',en:'Steelix',fr:'Steelix',set:'Neo Genesis',price:20},
+  {id:'ex11-10',en:'Metagross',fr:'Métalosse',set:'Legend Maker',price:10},
+  {id:'swsh1-113',en:'Metagross',fr:'Métalosse',set:'Sword and Shield',price:2},
+  {id:'base1-10',en:'Lapras',fr:'Lokhlass',set:'Base Set',price:25},
+];
+
+// Normalise les accents pour la recherche
+function normalize(s) {
+  return s.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9 ]/g, ' ').trim();
+}
+
+function searchCard() {
+  const raw = document.getElementById('search-input').value.trim();
+  if (!raw) return;
+
+  const grid = document.getElementById('results-grid');
+  const section = document.getElementById('search-results');
+  section.style.display = 'block';
+  document.getElementById('results-title').textContent = `Résultats pour "${raw}"`;
+  grid.innerHTML = '';
+
+  const q = normalize(raw);
+  const qWords = q.split(/\s+/).filter(w => w.length > 1);
+
+  // Score chaque carte
+  const scored = CARD_DB.map(c => {
+    const enN = normalize(c.en);
+    const frN = normalize(c.fr);
+    const setN = normalize(c.set);
+    let score = 0;
+    if (enN === q || frN === q) score = 100;
+    else if (enN.startsWith(q) || frN.startsWith(q)) score = 80;
+    else if (enN.includes(q) || frN.includes(q)) score = 60;
+    else {
+      for (const w of qWords) {
+        if (enN.includes(w) || frN.includes(w)) score += 20;
+        if (setN.includes(w)) score += 5;
+      }
+    }
+    return { card: c, score };
+  }).filter(x => x.score > 0).sort((a, b) => b.score - a.score || b.card.price - a.card.price);
+
+  if (scored.length === 0) {
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:30px;color:#888;font-weight:700;">
+      😢 "<strong>${raw}</strong>" introuvable<br>
+      <small style="color:#aaa;display:block;margin-top:8px">Essaie : Pikachu, Dracaufeu, Mewtwo, Ronflex, Pandespiègle...</small>
+    </div>`;
+    return;
+  }
+
+  scored.slice(0, 16).forEach(({ card }) => {
+    // Utilise l'image stockée dans la DB, ou construit l'URL pokemontcg
+    const [setId, num] = card.id.split('-');
+    const imgUrl = card.img || `https://images.pokemontcg.io/${setId}/${num}_hires.png`;
+    const el = document.createElement('div');
+    el.className = 'result-card';
+    el.innerHTML = `
+      <img src="${imgUrl}" alt="${card.fr}"
+        style="width:100%;aspect-ratio:2/3;object-fit:contain;background:#f5f5f5;display:block;"
+        onerror="this.outerHTML='<div style=\\'width:100%;aspect-ratio:2/3;background:linear-gradient(135deg,#f0f0f0,#e8e8e8);display:flex;align-items:center;justify-content:center;font-size:2rem;\\'>🎴</div>'">
+      <div class="card-name">
+        ${card.fr}<br>
+        <small style="color:#aaa">${card.set}</small><br>
+        <strong style="color:var(--orange)">~${card.price} €</strong>
+      </div>
+    `;
+    el.onclick = () => selectCard({
+      id: card.id,
+      name: card.fr,
+      set: { name: card.set },
+      images: { large: imgUrl, small: imgUrl },
+      priceEur: card.price
+    }, el);
+    grid.appendChild(el);
+  });
+}
+
+// =================== SELECTION + AJOUT ===================
+function selectCard(card, el) {
+  document.querySelectorAll('.result-card').forEach(r => r.classList.remove('selected'));
+  el.classList.add('selected');
+  const price = card.priceEur || 0;
+  selectedCardData = {
+    id: card.id,
+    name: card.name,
+    set: card.set?.name || '',
+    img: card.images?.large || card.images?.small || '',
+    price: parseFloat((price).toFixed(2))
+  };
+  document.getElementById('f-name').value = card.name;
+  document.getElementById('f-set').value = card.set?.name || '';
+  document.getElementById('f-price').value = selectedCardData.price || '';
+  document.getElementById('selected-card-img').src = selectedCardData.img;
+  const form = document.getElementById('add-form');
+  form.style.display = 'block';
+  form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function addCardToCollection() {
+  if (!selectedCardData) { showToast('❌ Sélectionne d\'abord une carte !'); return; }
+  const name = document.getElementById('f-name').value.trim() || selectedCardData.name;
+  const set = document.getElementById('f-set').value.trim();
+  const price = parseFloat(document.getElementById('f-price').value) || 0;
+  const condition = document.getElementById('f-condition').value;
+  const qty = parseInt(document.getElementById('f-qty').value) || 1;
+  const entry = {
+    uid: Date.now() + Math.random(),
+    id: selectedCardData.id,
+    name, set,
+    img: selectedCardData.img,
+    price, condition, qty,
+    added: Date.now()
+  };
+  collection.push(entry);
+  save();
+  updateStatsBar();
+  showToast(`✅ ${name} ajoutée au classeur !`);
+  cancelAdd();
+}
+
+function cancelAdd() {
+  selectedCardData = null;
+  document.getElementById('add-form').style.display = 'none';
+  document.querySelectorAll('.result-card').forEach(r => r.classList.remove('selected'));
+}
+
+// =================== FILE UPLOAD ===================
+function handleFileUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    document.getElementById('preview-img').src = ev.target.result;
+    document.getElementById('preview-area').style.display = 'flex';
+    document.getElementById('search-input').value = '';
+    document.getElementById('search-input').focus();
+    showToast('📸 Photo chargée ! Tape le nom du Pokémon pour le chercher.');
+  };
+  reader.readAsDataURL(file);
+}
+
+
+// =================== BINDER ===================
+let sortMode = 'name';
+
+function setSort(mode, btn) {
+  sortMode = mode;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderBinder();
+}
+
+function filterCards() { renderBinder(); }
+
+function getSortedFiltered() {
+  const q = (document.getElementById('filter-input')?.value || '').toLowerCase();
+  let arr = collection.filter(c => c.name.toLowerCase().includes(q));
+  if (sortMode === 'name') arr.sort((a,b) => a.name.localeCompare(b.name));
+  else if (sortMode === 'price') arr.sort((a,b) => b.price - a.price);
+  else arr.sort((a,b) => b.added - a.added);
+  return arr;
+}
+
+function renderBinder() {
+  const grid = document.getElementById('binder-grid');
+  const cards = getSortedFiltered();
+
+  if (cards.length === 0) {
+    grid.innerHTML = `
+      <div class="empty-state" style="grid-column:1/-1">
+        <div class="emoji">🎴</div>
+        <h3>${collection.length === 0 ? 'Classeur vide !' : 'Aucune carte trouvée'}</h3>
+        <p>${collection.length === 0 ? 'Ajoute ta première carte en cliquant sur <strong>"Ajouter une carte"</strong>' : 'Essaie un autre filtre'}</p>
+      </div>`;
+    return;
+  }
+
+  grid.innerHTML = cards.map(card => {
+    const condClass = { mint:'cond-mint', exc:'cond-exc', good:'cond-good', poor:'cond-poor' }[card.condition] || '';
+    const condLabel = { mint:'✨ Mint', exc:'💙 Excellent', good:'🟡 Bon état', poor:'🔴 Usée' }[card.condition] || '';
+    const rarityColor = card.price >= 50 ? '#FFD700' : card.price >= 20 ? '#C77DFF' : card.price >= 5 ? '#4ECDC4' : '#aaa';
+
+    return `
+      <div class="binder-card" onclick="openModal('${card.uid}')">
+        <img src="${card.img}" alt="${card.name}" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 140%22><rect fill=%22%23f0f0f0%22 width=%22100%22 height=%22140%22/><text y=%2280%22 x=%2250%22 text-anchor=%22middle%22 fill=%22%23ccc%22 font-size=%2230%22>🎴</text></svg>'">
+        <div class="rarity-dot" style="background:${rarityColor}"></div>
+        ${card.qty > 1 ? `<div class="qty-badge">×${card.qty}</div>` : ''}
+        <div class="binder-card-info">
+          <div class="binder-card-name">${card.name}</div>
+          <div class="binder-card-set">${card.set || '—'}</div>
+          <span class="price-badge">${card.price > 0 ? card.price.toFixed(2) + ' €' : '? €'}</span>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// =================== MODAL ===================
+function openModal(uid) {
+  const card = collection.find(c => String(c.uid) === String(uid));
+  if (!card) return;
+  currentModalId = uid;
+
+  const condLabel = { mint:'✨ Mint (Parfaite)', exc:'💙 Excellent', good:'🟡 Bon état', poor:'🔴 Usée' }[card.condition] || '—';
+
+  document.getElementById('modal-title').textContent = card.name;
+  document.getElementById('modal-img').src = card.img;
+  document.getElementById('modal-set').textContent = card.set || '—';
+  document.getElementById('modal-cond').textContent = condLabel;
+  document.getElementById('modal-qty').textContent = card.qty;
+  document.getElementById('modal-price').textContent = (card.price > 0 ? card.price.toFixed(2) : '0.00') + ' €';
+  document.getElementById('modal-price-edit').value = card.price || '';
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById('modal-overlay'))
+    document.getElementById('modal-overlay').classList.remove('open');
+}
+
+function updatePrice() {
+  const val = parseFloat(document.getElementById('modal-price-edit').value);
+  if (isNaN(val) || val < 0) { showToast('❌ Prix invalide'); return; }
+  const card = collection.find(c => String(c.uid) === String(currentModalId));
+  if (!card) return;
+  card.price = val;
+  save();
+  document.getElementById('modal-price').textContent = val.toFixed(2) + ' €';
+  updateStatsBar();
+  renderBinder();
+  showToast('💰 Prix mis à jour !');
+}
+
+function deleteCurrentCard() {
+  if (!currentModalId) return;
+  const card = collection.find(c => String(c.uid) === String(currentModalId));
+  if (!card) return;
+  if (!confirm(`Supprimer "${card.name}" du classeur ?`)) return;
+  collection = collection.filter(c => String(c.uid) !== String(currentModalId));
+  save();
+  document.getElementById('modal-overlay').classList.remove('open');
+  renderBinder();
+  updateStatsBar();
+  showToast(`🗑️ ${card.name} supprimée`);
+}
+
+// =================== STATS ===================
+function renderStats() {
+  const total = collection.reduce((s,c) => s + (c.qty || 1), 0);
+  const totalVal = collection.reduce((s,c) => s + (c.price || 0) * (c.qty || 1), 0);
+  const avg = total > 0 ? totalVal / total : 0;
+  const sorted = [...collection].sort((a,b) => b.price - a.price);
+  const top = sorted[0];
+  const mintCount = collection.filter(c => c.condition === 'mint').reduce((s,c) => s + (c.qty||1), 0);
+  const unique = new Set(collection.map(c => c.name.toLowerCase())).size;
+
+  document.getElementById('s-total').textContent = total;
+  document.getElementById('s-value').textContent = totalVal.toFixed(2) + ' €';
+  document.getElementById('s-avg').textContent = avg.toFixed(2) + ' €';
+  document.getElementById('s-top').textContent = top ? top.price.toFixed(2) + ' €' : '—';
+  document.getElementById('s-top-name').textContent = top ? top.name : '';
+  document.getElementById('s-mint').textContent = mintCount;
+  document.getElementById('s-unique').textContent = unique;
+
+  // Top 5
+  const topList = document.getElementById('top-list');
+  const top5 = sorted.slice(0, 5);
+  if (top5.length === 0) {
+    topList.innerHTML = `<p style="color:#aaa;text-align:center;padding:20px;font-weight:700;">Aucune carte dans la collection</p>`;
+    return;
+  }
+  const medals = ['🥇','🥈','🥉','4️⃣','5️⃣'];
+  topList.innerHTML = top5.map((card, i) => `
+    <div class="top-card-row">
+      <div class="top-rank rank-${i+1}">${medals[i]}</div>
+      <img src="${card.img}" alt="${card.name}" onerror="this.style.display='none'">
+      <div class="top-card-info">
+        <div class="tc-name">${card.name}</div>
+        <div class="tc-set">${card.set || '—'}</div>
+      </div>
+      <div class="top-card-price">${card.price.toFixed(2)} €</div>
+    </div>
+  `).join('');
+}
+
+function updateStatsBar() {
+  const total = collection.reduce((s,c) => s + (c.qty || 1), 0);
+  const totalVal = collection.reduce((s,c) => s + (c.price || 0) * (c.qty || 1), 0);
+  const unique = new Set(collection.map(c => c.name.toLowerCase())).size;
+  const top = collection.length > 0 ? [...collection].sort((a,b) => b.price - a.price)[0] : null;
+
+  document.getElementById('total-cards').textContent = total;
+  document.getElementById('unique-pokemon').textContent = unique;
+  document.getElementById('total-value').textContent = totalVal.toFixed(2).replace('.', ',') + ' €';
+  document.getElementById('top-card-stat').textContent = top ? top.price.toFixed(2) + ' €' : '—';
+}
+
+// =================== TOAST ===================
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// =================== DRAG AND DROP ===================
+const zone = document.getElementById('upload-zone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+zone.addEventListener('drop', e => {
+  e.preventDefault();
+  zone.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) handleFileUpload({ target: { files: [file] } });
+});
+
+// =================== INIT ===================
+updateStatsBar();
+</script>
+</body>
+</html>
