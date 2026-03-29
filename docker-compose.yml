@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  # Base de données MongoDB
+  mongo:
+    image: mongo:7
+    container_name: pokemon-mongo
+    restart: always
+    volumes:
+      - mongo_data:/data/db
+    ports:
+      - "27017:27017"
+
+  # Backend FastAPI
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: pokemon-backend
+    restart: always
+    ports:
+      - "8001:8001"
+    depends_on:
+      - mongo
+    env_file:
+      - ./backend/.env.production
+
+  # Frontend React
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - REACT_APP_BACKEND_URL=${DOMAIN_URL:-http://localhost}
+    container_name: pokemon-frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  mongo_data:
