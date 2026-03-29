@@ -55,6 +55,12 @@ Transformer un classeur Pokemon HTML simple en une application full-stack modern
 - Retirer une carte d'un classeur (binder_id = null)
 - Badges de types Pokemon dans le modal de detail
 
+### Phase 6 - TCGdex FR + Prix (DONE - 29 Mars 2026)
+- Integration TCGdex API pour cartes FR natives (images, noms, sets en francais)
+- Enrichissement des prix: cartes FR recuperent les prix depuis Pokemon TCG API EN (match par set_id + numero)
+- Fix scan IA: pre-filtrage par numero de carte pour trouver la bonne carte FR parmi tous les resultats
+- Auto-detection Generation 1: cartes Gen 1 auto-assignees au classeur "Generation 1"
+
 ## Key API Endpoints
 - POST/GET /api/auth/* - Auth
 - GET/POST/PUT/DELETE /api/cards - CRUD cartes

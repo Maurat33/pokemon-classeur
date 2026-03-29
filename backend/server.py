@@ -734,7 +734,25 @@ async def search_pokemon(q: str, page: int = 1, pageSize: int = 20, lang: str = 
         except Exception as e:
             print(f"Pokemon TCG API error: {e}")
         
-        # Combine: FR first, then EN
+        # Combine: FR first, then EN — enrich FR cards with EN prices by matching set+number
+        if results_fr and results_en:
+            import re as re_mod
+            en_price_map = {}
+            for en_card in results_en:
+                sid = en_card.get("set_id", "").lower()
+                num = str(en_card.get("number", "")).lstrip("0")
+                if en_card.get("prices") and num:
+                    en_price_map[(sid, num)] = en_card["prices"]
+            
+            for fr_card in results_fr:
+                if not fr_card.get("prices"):
+                    fr_sid = fr_card.get("set_id", "").lower()
+                    # Normalize TCGdex set_id: "me02" -> "me2", "sv03" -> "sv3"
+                    fr_sid_normalized = re_mod.sub(r'0+(\d)', r'\1', fr_sid)
+                    fr_num = str(fr_card.get("number", "")).lstrip("0")
+                    if (fr_sid_normalized, fr_num) in en_price_map:
+                        fr_card["prices"] = en_price_map[(fr_sid_normalized, fr_num)]
+        
         all_cards = results_fr + results_en
         return {"cards": all_cards[:pageSize*2], "totalCount": len(all_cards)}
 
@@ -870,6 +888,40 @@ If you cannot identify something with certainty, provide your best guess. NEVER 
                                 continue
             except Exception as e:
                 print(f"TCGdex scan search error: {e}")
+            
+            # If FR matches found, fetch prices from EN API for the first match
+            if tcg_matches and en_name:
+                try:
+                    price_num = card_number.split("/")[0].lstrip("0") if card_number and "/" in card_number else ""
+                    price_queries = []
+                    search_en = f"{en_name} {suffix}".strip() if suffix else en_name
+                    if price_num and set_name:
+                        price_queries.append(f'name:"{search_en}" number:{price_num} set.name:"{set_name}"')
+                    if price_num:
+                        price_queries.append(f'name:"{search_en}" number:{price_num}')
+                    price_queries.append(f'name:"{search_en}"')
+                    
+                    for pq in price_queries:
+                        try:
+                            price_resp = await client.get(f"{POKEMON_TCG_API}/cards", params={"q": pq, "pageSize": 5}, timeout=10.0)
+                            price_data = price_resp.json()
+                            if price_data.get("data"):
+                                # Pick the best price match (prefer exact number match)
+                                best_prices = None
+                                for en_card in price_data["data"]:
+                                    en_prices = en_card.get("tcgplayer", {}).get("prices", {})
+                                    if en_prices:
+                                        best_prices = en_prices
+                                        break
+                                if best_prices:
+                                    for m in tcg_matches:
+                                        if m["lang"] == "fr" and not m["prices"]:
+                                            m["prices"] = best_prices
+                                    break
+                        except:
+                            continue
+                except Exception as e:
+                    print(f"Price fetch error: {e}")
             
             # If exact FR match found (matched number), skip EN search
             if not tcg_matches:
