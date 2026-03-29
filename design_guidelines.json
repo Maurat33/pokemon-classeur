@@ -1,0 +1,131 @@
+{
+  "theme": {
+    "archetype": "5 (Jewel & Luxury)",
+    "mode": "dark",
+    "vibe": "Premium, Cinematic, Holographic, High-Performance",
+    "description": "A dark, immersive environment that makes the colorful Pokemon cards pop. It uses 'Jewel & Luxury' principles with a deep obsidian base and subtle iridescent 'holographic' accents to mimic the feeling of rare trading cards. High-contrast data visualization ensures it functions perfectly as a collection manager."
+  },
+  "colors": {
+    "background": {
+      "default": "#07070A",
+      "surface": "#121218",
+      "surface_elevated": "#1A1A24",
+      "glass": "rgba(18, 18, 24, 0.6)"
+    },
+    "text": {
+      "primary": "#FFFFFF",
+      "secondary": "#A0A0AB",
+      "muted": "#6B6B78"
+    },
+    "border": {
+      "default": "#2D2D3B",
+      "focus": "#FF007F",
+      "glass": "rgba(255, 255, 255, 0.1)"
+    },
+    "accents": {
+      "primary": "#FF007F",
+      "secondary": "#00F0FF",
+      "tertiary": "#FFD700",
+      "holographic_gradient": "linear-gradient(135deg, #00F0FF 0%, #FF007F 50%, #FFD700 100%)",
+      "success": "#00E676",
+      "danger": "#FF3B30",
+      "warning": "#FFD600"
+    }
+  },
+  "typography": {
+    "fonts": {
+      "heading": "'Outfit', sans-serif",
+      "body": "'Manrope', sans-serif",
+      "mono": "'JetBrains Mono', monospace"
+    },
+    "scale": {
+      "h1": "text-4xl sm:text-5xl lg:text-6xl tracking-tight font-bold",
+      "h2": "text-2xl sm:text-3xl lg:text-4xl tracking-tight font-semibold",
+      "h3": "text-xl sm:text-2xl tracking-tight font-medium",
+      "h4": "text-lg sm:text-xl font-medium",
+      "body": "text-base leading-relaxed",
+      "small": "text-sm",
+      "overline": "text-xs tracking-[0.2em] uppercase font-bold"
+    },
+    "rules": [
+      "Use 'Outfit' for all headings to provide a premium, geometric tech feel.",
+      "Use 'Manrope' for body copy and data tables for maximum legibility.",
+      "Never use pure white for large blocks of text; use #A0A0AB for secondary information.",
+      "Overlines must be uppercase with wide letter spacing."
+    ]
+  },
+  "spacing_and_layout": {
+    "strategy": "The 'Control Room' Grid",
+    "base_padding": "p-6 md:p-8",
+    "grid": {
+      "columns": "grid-cols-1 md:grid-cols-3 lg:grid-cols-4",
+      "gap": "gap-6",
+      "rules": [
+        "Every pixel must be utilized in the dashboard view.",
+        "Use 'h-full' on children to ensure they stretch to match their neighbors.",
+        "Mobile-first: always start with grid-cols-1."
+      ]
+    },
+    "surfaces": [
+      {
+        "type": "Glassmorphism (Crystal Variant)",
+        "usage": "Sticky Headers, Floating Navs, Modal Overlays",
+        "classes": "bg-[#121218]/60 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
+      },
+      {
+        "type": "Flat Solid (with Tracing Beam/Holo Hover)",
+        "usage": "Dashboard Widgets, Pokemon Cards",
+        "classes": "bg-[#121218] border border-[#2D2D3B] hover:border-[#FF007F]/50 transition-colors duration-300"
+      }
+    ]
+  },
+  "components": {
+    "strategy": "Shadcn UI Heavy + Custom Framer Motion",
+    "rules": [
+      "Buttons: Use flat backgrounds with holographic gradient borders on hover.",
+      "Cards: Implement the 'Tall Card' trend. Allow vertical space for card artwork and price charts.",
+      "Charts: Use Shadcn Charts (Recharts). Lines should use accent colors (Cyan or Magenta) with a glowing drop shadow filter.",
+      "Forms: Use Shadcn Input, Select, and Form components. Background #07070A, border #2D2D3B, focus ring should be primary accent.",
+      "Navigation: Glassmorphic sticky sidebar or top nav. Must always be visible on desktop."
+    ]
+  },
+  "animations": {
+    "libraries": ["framer-motion", "lucide-react"],
+    "rules": [
+      "Hover states on Pokemon cards should include a slight lift (-translate-y-2) and a 3D tilt effect if possible.",
+      "Use staggered entrance animations for lists and grid items.",
+      "Page transitions should be smooth fades with a slight upward drift (y: 20 -> 0).",
+      "Interactive elements must have clear focus states for accessibility."
+    ]
+  },
+  "icons": {
+    "library": "lucide-react",
+    "installation": "Already installed in Shadcn",
+    "rules": "Use stroke-width 1.5 for a premium, delicate look. Icon colors should generally match text colors, except for active states which should use primary/secondary accents."
+  },
+  "images": {
+    "hero_background": {
+      "url": "https://static.prod-images.emergentagent.com/jobs/4706d658-0f8c-4a63-a8e4-cbe9ff9f7e2b/images/53c61e7560f0d057fd16027151647b3e45504b42bc5a8dd420dd156f094e0385.png",
+      "description": "Abstract dark background with a subtle, elegant holographic foil texture.",
+      "usage": "Use as a full-screen background overlay with opacity-20 for the auth page or landing page hero section."
+    },
+    "hero_foreground": {
+      "url": "https://static.prod-images.emergentagent.com/jobs/4706d658-0f8c-4a63-a8e4-cbe9ff9f7e2b/images/51257735a2770312e5ee20f0124a58f0440ba4dee01a23b1206f9a41adf8831c.png",
+      "description": "Dark cinematic 3D render of floating blank trading cards in a void.",
+      "usage": "Use as the primary visual on the landing/auth page. Needs a gradient overlay to ensure text contrast."
+    },
+    "collection_placeholder_1": {
+      "url": "https://images.pexels.com/photos/7708408/pexels-photo-7708408.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+      "description": "A collection of Pokemon trading cards arranged on a blue couch.",
+      "usage": "Use in the 'Share Collection' feature showcase or empty states."
+    },
+    "collection_placeholder_2": {
+      "url": "https://images.unsplash.com/photo-1703023689733-6a4281149189?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Nzd8MHwxfHNlYXJjaHwyfHxwb2tlbW9uJTIwY2FyZHMlMjBjb2xsZWN0aW9ufGVufDB8fHx8MTc3NDgwMjM5Mnww&ixlib=rb-4.1.0&q=85",
+      "description": "A bunch of pokemon cards on a table.",
+      "usage": "Use as a fallback image for user profiles or community shared collections."
+    }
+  },
+  "testing": {
+    "data_testid_rules": "All interactive and key informational elements MUST include a data-testid attribute (e.g., data-testid='login-submit-button', data-testid='scan-card-button')."
+  }
+}
