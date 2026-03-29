@@ -80,10 +80,13 @@ Transformer un classeur Pokemon HTML simple en une application full-stack modern
 
 ### P0 (Critical) - ALL DONE
 - Auth, CRUD, TCG API, AI, Export, Share, Child mode, Binders, Sets, Types, Vitrine
+- Auto-detection Generation 1 au scan/ajout -> assignation automatique au classeur "Generation 1"
+- Integration TCGdex API pour cartes FR natives
 
 ### P1 (High) - Future
 - [ ] Drag & Drop pour deplacer les cartes entre classeurs visuellement
 - [ ] Historique des prix plus detaille (avec dates differentes)
+- [ ] Refactoring Dashboard.js (1900+ lignes) en sous-composants
 
 ### P2 (Medium) - Future
 - [ ] Notifications de changement de prix
