@@ -71,6 +71,22 @@ export const getSharedCollection = async (token) => {
 export const exportPDF = () => `${API_URL}/api/export/pdf`;
 export const exportExcel = () => `${API_URL}/api/export/excel`;
 
+// Profile
+export const getProfile = async () => {
+  const { data } = await api.get('/api/user/profile');
+  return data;
+};
+
+export const updateAvatar = async (avatarBase64) => {
+  const { data } = await api.post('/api/user/avatar', { avatar: avatarBase64 });
+  return data;
+};
+
+export const updateChildAvatar = async (avatarBase64, childEmail = 'leo@pokemon.com') => {
+  const { data } = await api.post('/api/user/child-avatar', { avatar: avatarBase64, child_email: childEmail });
+  return data;
+};
+
 export const formatApiError = (detail) => {
   if (detail == null) return "Une erreur est survenue. Veuillez réessayer.";
   if (typeof detail === "string") return detail;

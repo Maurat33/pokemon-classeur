@@ -957,8 +957,52 @@ async def get_user_profile(request: Request):
         "badges": badge_details,
         "games_played": full_user.get("games_played", 0),
         "high_scores": full_user.get("high_scores", {}),
-        "game_stats": full_user.get("game_stats", {})
+        "game_stats": full_user.get("game_stats", {}),
+        "avatar": full_user.get("avatar")
     }
+
+@app.post("/api/user/avatar")
+async def update_avatar(request: Request):
+    """Update user avatar (base64 image)"""
+    user = await get_current_user(request)
+    data = await request.json()
+    
+    avatar = data.get("avatar")  # base64 image
+    if not avatar:
+        raise HTTPException(status_code=400, detail="Avatar required")
+    
+    await db.users.update_one(
+        {"_id": ObjectId(user["_id"])},
+        {"$set": {"avatar": avatar}}
+    )
+    
+    return {"message": "Avatar updated", "avatar": avatar}
+
+@app.post("/api/user/child-avatar")
+async def update_child_avatar(request: Request):
+    """Admin can update child's avatar"""
+    user = await get_current_user(request)
+    
+    # Only admin can update child avatar
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Only admin can update child avatar")
+    
+    data = await request.json()
+    child_email = data.get("child_email", "leo@pokemon.com")
+    avatar = data.get("avatar")
+    
+    if not avatar:
+        raise HTTPException(status_code=400, detail="Avatar required")
+    
+    result = await db.users.update_one(
+        {"email": child_email, "role": "child"},
+        {"$set": {"avatar": avatar}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Child not found")
+    
+    return {"message": "Child avatar updated"}
 
 if __name__ == "__main__":
     import uvicorn

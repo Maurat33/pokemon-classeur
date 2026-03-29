@@ -50,6 +50,9 @@ export default function Dashboard() {
     setTimeout(() => setToast(null), 3000);
   };
 
+  const [childProfile, setChildProfile] = useState(null);
+  const [showAvatarModal, setShowAvatarModal] = useState(false);
+
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
@@ -61,12 +64,20 @@ export default function Dashboard() {
       setCards(cardsRes.cards || []);
       setStats(statsRes);
       setTopCards(topRes.cards || []);
+      
+      // Load child profile if child
+      if (user?.role === 'child') {
+        try {
+          const profileRes = await api.getProfile();
+          setChildProfile(profileRes);
+        } catch (e) {}
+      }
     } catch (err) {
       console.error('Error loading data:', err);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user?.role]);
 
   useEffect(() => {
     loadData();
@@ -173,6 +184,31 @@ export default function Dashboard() {
             <motion.div animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 2, repeat: Infinity }}>
               <Pokeball />
             </motion.div>
+            
+            {/* Avatar for child */}
+            {isChild && (
+              <motion.div 
+                className="relative cursor-pointer"
+                whileHover={{ scale: 1.1 }}
+                onClick={() => setShowAvatarModal(true)}
+              >
+                {childProfile?.avatar ? (
+                  <img 
+                    src={childProfile.avatar} 
+                    alt={user?.name}
+                    className="w-20 h-20 rounded-full border-4 border-yellow-400 object-cover shadow-lg"
+                  />
+                ) : (
+                  <div className="w-20 h-20 rounded-full border-4 border-yellow-400 bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-3xl shadow-lg">
+                    🧒
+                  </div>
+                )}
+                <div className="absolute -bottom-1 -right-1 bg-yellow-400 rounded-full p-1 border-2 border-white">
+                  <Camera size={14} className="text-gray-800" />
+                </div>
+              </motion.div>
+            )}
+            
             <div className="text-center">
               <h1 
                 className={`text-3xl md:text-4xl font-bold ${isDark ? 'holographic-text' : 'text-white'}`}
@@ -326,6 +362,7 @@ export default function Dashboard() {
             setSortBy={setSortBy}
             onCardClick={setShowDetailModal}
             onAddClick={() => setShowAddModal(true)}
+            isChild={isChild}
           />
         )}
         
@@ -409,7 +446,7 @@ function StatChip({ icon, label, value, highlight, isDark = true }) {
 function CollectionView({ 
   cards, loading, searchQuery, setSearchQuery, 
   filterCondition, setFilterCondition, sortBy, setSortBy,
-  onCardClick, onAddClick 
+  onCardClick, onAddClick, isChild = false 
 }) {
   return (
     <div className="card-pokemon p-6">
@@ -417,7 +454,7 @@ function CollectionView({
         className="text-2xl font-bold mb-4 flex items-center gap-2 holographic-text"
         style={{ fontFamily: "'Fredoka One', cursive" }}
       >
-        📖 Mon Classeur
+        📖 {isChild ? 'Mes Super Cartes' : 'Mon Classeur'}
       </h2>
       
       {/* Filters */}
@@ -470,17 +507,21 @@ function CollectionView({
             className="text-2xl font-bold text-gray-400 mb-2"
             style={{ fontFamily: "'Fredoka One', cursive" }}
           >
-            Classeur vide !
+            {isChild ? 'Pas encore de cartes !' : 'Classeur vide !'}
           </h3>
-          <p className="text-gray-500 mb-6">Ajoute ta première carte</p>
-          <button 
-            onClick={onAddClick} 
-            className="btn-pokemon btn-pokemon-gold"
-            style={{ fontFamily: "'Fredoka One', cursive" }}
-            data-testid="add-first-card"
-          >
-            + Ajouter une carte
-          </button>
+          <p className="text-gray-500 mb-6">
+            {isChild ? 'Demande à tes parents d\'ajouter tes cartes 🙏' : 'Ajoute ta première carte'}
+          </p>
+          {!isChild && (
+            <button 
+              onClick={onAddClick} 
+              className="btn-pokemon btn-pokemon-gold"
+              style={{ fontFamily: "'Fredoka One', cursive" }}
+              data-testid="add-first-card"
+            >
+              + Ajouter une carte
+            </button>
+          )}
         </motion.div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
