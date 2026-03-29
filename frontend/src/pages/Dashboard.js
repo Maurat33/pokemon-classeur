@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Search, Plus, BarChart3, Share2, Download, LogOut, Camera, 
-  X, Trash2, Edit3, ChevronDown, Sparkles, TrendingUp, Award, 
+  X, Trash2, Edit3, ChevronDown, TrendingUp, Award, 
   Package, Zap, FileSpreadsheet, FileText, ExternalLink, Copy,
   CheckCircle, AlertCircle
 } from 'lucide-react';
@@ -12,11 +12,16 @@ import { useDropzone } from 'react-dropzone';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 const CONDITION_LABELS = {
-  mint: { label: '✨ Mint', color: 'text-green-400' },
-  exc: { label: '💙 Excellent', color: 'text-blue-400' },
-  good: { label: '🟡 Bon état', color: 'text-yellow-400' },
-  poor: { label: '🔴 Usée', color: 'text-red-400' },
+  mint: { label: '✨ Mint', color: 'text-green-600', bg: 'cond-mint' },
+  exc: { label: '💙 Excellent', color: 'text-blue-600', bg: 'cond-exc' },
+  good: { label: '🟡 Bon état', color: 'text-yellow-700', bg: 'cond-good' },
+  poor: { label: '🔴 Usée', color: 'text-red-600', bg: 'cond-poor' },
 };
+
+// Pokeball component
+const Pokeball = ({ size = 'normal' }) => (
+  <div className={size === 'small' ? 'pokeball pokeball-small' : 'pokeball'} />
+);
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
@@ -64,7 +69,7 @@ export default function Dashboard() {
   const handleDeleteCard = async (cardId) => {
     try {
       await api.deleteCard(cardId);
-      showToast('Carte supprimée');
+      showToast('Carte supprimée ! 🗑️');
       loadData();
       setShowDetailModal(null);
     } catch (err) {
@@ -75,7 +80,7 @@ export default function Dashboard() {
   const handleUpdatePrice = async (cardId, newPrice) => {
     try {
       await api.updateCard(cardId, { price: parseFloat(newPrice) });
-      showToast('Prix mis à jour');
+      showToast('Prix mis à jour ! 💰');
       loadData();
     } catch (err) {
       showToast('Erreur lors de la mise à jour', 'error');
@@ -95,14 +100,14 @@ export default function Dashboard() {
 
   const copyShareLink = () => {
     navigator.clipboard.writeText(shareLink);
-    showToast('Lien copié!');
+    showToast('Lien copié ! 📋');
   };
 
   const handleExport = async (type) => {
     try {
       const url = type === 'pdf' ? api.exportPDF() : api.exportExcel();
       window.open(url, '_blank');
-      showToast(`Export ${type.toUpperCase()} lancé`);
+      showToast(`Export ${type.toUpperCase()} lancé ! 📥`);
     } catch (err) {
       showToast('Erreur lors de l\'export', 'error');
     }
@@ -123,94 +128,82 @@ export default function Dashboard() {
     });
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       {/* Header */}
-      <header className="glass sticky top-0 z-50 border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Sparkles className="w-8 h-8 text-accent-tertiary" />
-            <h1 className="font-heading text-2xl font-bold holographic-text">Pokemon Classeur</h1>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <span className="text-gray-400 hidden sm:block">
-              Bonjour, <span className="text-white font-semibold">{user?.name}</span>
-            </span>
-            <button
-              onClick={logout}
-              className="p-2 text-gray-400 hover:text-white transition-colors"
-              data-testid="logout-btn"
-            >
-              <LogOut size={20} />
-            </button>
-          </div>
-        </div>
+      <header className="header-gradient text-center py-6 border-b-4 border-[#1a1a2e] relative z-10">
+        <motion.h1 
+          className="text-3xl md:text-4xl text-white font-bold flex items-center justify-center gap-3"
+          style={{ fontFamily: "'Fredoka One', cursive", textShadow: '3px 3px 0 #1a1a2e' }}
+        >
+          <Pokeball />
+          Mon Classeur Pokémon
+          <Pokeball />
+        </motion.h1>
+        <p className="text-white/90 mt-1 text-sm font-semibold">
+          ✨ Scanne tes cartes • Trouve les prix • Suis ta collection !
+        </p>
       </header>
 
       {/* Stats Bar */}
-      <div className="bg-background-surface border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatChip icon={<Package />} label="Cartes" value={stats?.total_cards || 0} />
-            <StatChip 
-              icon={<TrendingUp />} 
-              label="Valeur totale" 
-              value={`${(stats?.total_value || 0).toFixed(2)}€`}
-              highlight 
-            />
-            <StatChip icon={<Zap />} label="Pokemon uniques" value={stats?.unique_pokemon || 0} />
-            <StatChip 
-              icon={<Award />} 
-              label="Carte top" 
-              value={stats?.top_card?.name ? `${stats.top_card.price}€` : '—'} 
-            />
-          </div>
+      <div className="bg-[#1a1a2e] border-b-4 border-[#FFD93D] py-4 px-4">
+        <div className="max-w-6xl mx-auto flex flex-wrap justify-center gap-4">
+          <StatChip icon={<Pokeball size="small" />} label="Cartes" value={stats?.total_cards || 0} />
+          <StatChip icon={<Pokeball size="small" />} label="Pokémon" value={stats?.unique_pokemon || 0} />
+          <StatChip 
+            icon="💰" 
+            label="Valeur totale" 
+            value={`${(stats?.total_value || 0).toFixed(2)} €`}
+            highlight 
+          />
+          <StatChip icon="⭐" label="Carte top" value={stats?.top_card?.name ? `${stats.top_card.price}€` : '—'} />
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="max-w-7xl mx-auto px-4 py-4 flex flex-wrap gap-2">
-        {[
-          { id: 'collection', label: 'Ma Collection', icon: <Package size={18} /> },
-          { id: 'add', label: 'Ajouter', icon: <Plus size={18} /> },
-          { id: 'stats', label: 'Statistiques', icon: <BarChart3 size={18} /> },
-        ].map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => tab.id === 'add' ? setShowAddModal(true) : setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-semibold transition-all ${
-              activeTab === tab.id 
-                ? 'bg-accent-primary text-white' 
-                : 'bg-background-surface text-gray-400 hover:text-white border border-border hover:border-accent-primary/50'
-            }`}
-            data-testid={`nav-${tab.id}`}
-          >
-            {tab.icon}
-            {tab.label}
-          </button>
-        ))}
-        
-        <div className="flex-1" />
-        
+      <nav className="flex flex-wrap justify-center gap-3 py-4 px-4 relative z-10">
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="btn-pokemon active"
+          data-testid="nav-add"
+        >
+          📷 Ajouter une carte
+        </button>
+        <button
+          onClick={() => setActiveTab('collection')}
+          className={`btn-pokemon ${activeTab === 'collection' ? '' : 'btn-pokemon-outline'}`}
+          data-testid="nav-collection"
+        >
+          📖 Mon Classeur
+        </button>
+        <button
+          onClick={() => setActiveTab('stats')}
+          className={`btn-pokemon ${activeTab === 'stats' ? '' : 'btn-pokemon-outline'}`}
+          data-testid="nav-stats"
+        >
+          📊 Mes Stats
+        </button>
+      </nav>
+
+      {/* Action buttons */}
+      <div className="flex justify-center gap-3 mb-4 px-4">
         <button
           onClick={handleShare}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-background-surface text-gray-400 hover:text-accent-secondary border border-border hover:border-accent-secondary/50 transition-all"
+          className="btn-pokemon btn-pokemon-outline text-sm py-2 px-4"
           data-testid="share-btn"
         >
-          <Share2 size={18} />
-          <span className="hidden sm:inline">Partager</span>
+          <Share2 size={16} className="inline mr-1" />
+          Partager
         </button>
-        
         <div className="relative group">
-          <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-background-surface text-gray-400 hover:text-accent-tertiary border border-border hover:border-accent-tertiary/50 transition-all">
-            <Download size={18} />
-            <span className="hidden sm:inline">Exporter</span>
-            <ChevronDown size={16} />
+          <button className="btn-pokemon btn-pokemon-outline text-sm py-2 px-4">
+            <Download size={16} className="inline mr-1" />
+            Exporter
+            <ChevronDown size={14} className="inline ml-1" />
           </button>
-          <div className="absolute right-0 top-full mt-2 bg-background-surface border border-border rounded-xl overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
+          <div className="absolute left-0 top-full mt-2 bg-white border-3 border-[#1a1a2e] rounded-xl overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20 shadow-lg">
             <button
               onClick={() => handleExport('pdf')}
-              className="flex items-center gap-2 px-4 py-2 w-full text-left hover:bg-background-elevated text-gray-300 hover:text-white"
+              className="flex items-center gap-2 px-4 py-2 w-full text-left hover:bg-yellow-100 font-semibold"
               data-testid="export-pdf"
             >
               <FileText size={16} />
@@ -218,7 +211,7 @@ export default function Dashboard() {
             </button>
             <button
               onClick={() => handleExport('excel')}
-              className="flex items-center gap-2 px-4 py-2 w-full text-left hover:bg-background-elevated text-gray-300 hover:text-white"
+              className="flex items-center gap-2 px-4 py-2 w-full text-left hover:bg-yellow-100 font-semibold"
               data-testid="export-excel"
             >
               <FileSpreadsheet size={16} />
@@ -226,10 +219,18 @@ export default function Dashboard() {
             </button>
           </div>
         </div>
-      </nav>
+        <button
+          onClick={logout}
+          className="btn-pokemon btn-pokemon-outline text-sm py-2 px-4"
+          data-testid="logout-btn"
+        >
+          <LogOut size={16} className="inline mr-1" />
+          {user?.name}
+        </button>
+      </div>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 pb-8">
+      <main className="max-w-6xl mx-auto px-4 pb-8 relative z-10">
         {activeTab === 'collection' && (
           <CollectionView 
             cards={filteredCards}
@@ -258,7 +259,7 @@ export default function Dashboard() {
             onSuccess={() => {
               loadData();
               setShowAddModal(false);
-              showToast('Carte ajoutée!');
+              showToast('Carte ajoutée ! 🎉');
             }}
           />
         )}
@@ -288,9 +289,9 @@ export default function Dashboard() {
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 50 }}
-            className={`fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full flex items-center gap-2 ${
-              toast.type === 'error' ? 'bg-red-500' : 'bg-green-500'
-            } text-white font-semibold shadow-lg z-50`}
+            className={`toast flex items-center gap-2 ${
+              toast.type === 'error' ? 'bg-red-500' : 'bg-[#1a1a2e]'
+            }`}
           >
             {toast.type === 'error' ? <AlertCircle size={20} /> : <CheckCircle size={20} />}
             {toast.message}
@@ -304,15 +305,11 @@ export default function Dashboard() {
 // Sub-components
 function StatChip({ icon, label, value, highlight }) {
   return (
-    <div className={`flex items-center gap-3 p-3 rounded-xl ${
-      highlight 
-        ? 'bg-gradient-to-r from-accent-primary/20 to-accent-secondary/20 border border-accent-primary/30' 
-        : 'bg-background-elevated border border-border'
-    }`}>
-      <div className={highlight ? 'text-accent-tertiary' : 'text-gray-500'}>{icon}</div>
+    <div className={`stat-chip ${highlight ? 'stat-chip-gold' : ''}`}>
+      <span className="text-xl">{typeof icon === 'string' ? icon : icon}</span>
       <div>
-        <div className="text-xs text-gray-500 uppercase tracking-wider">{label}</div>
-        <div className={`font-heading font-bold text-lg ${highlight ? 'text-accent-tertiary' : 'text-white'}`}>
+        <div className="text-xs text-gray-500 font-semibold">{label}</div>
+        <div className={`font-bold text-lg ${highlight ? 'text-[#1a1a2e]' : 'text-[#1a1a2e]'}`} style={{ fontFamily: "'Fredoka One', cursive" }}>
           {value}
         </div>
       </div>
@@ -326,69 +323,61 @@ function CollectionView({
   onCardClick, onAddClick 
 }) {
   return (
-    <div>
+    <div className="card-pokemon p-6">
+      <h2 className="text-2xl font-bold mb-4 flex items-center gap-2" style={{ fontFamily: "'Fredoka One', cursive" }}>
+        📖 Mon Classeur
+      </h2>
+      
       {/* Filters */}
       <div className="flex flex-wrap gap-3 mb-6">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
+        <div className="flex-1 min-w-[200px]">
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Rechercher un Pokemon..."
-            className="w-full bg-background-surface border border-border rounded-xl pl-10 pr-4 py-2 text-white placeholder-gray-500"
+            placeholder="🔍 Filtrer par nom..."
+            className="w-full input-pokemon"
             data-testid="search-input"
           />
         </div>
-        
-        <select
-          value={filterCondition}
-          onChange={(e) => setFilterCondition(e.target.value)}
-          className="bg-background-surface border border-border rounded-xl px-4 py-2 text-white"
-          data-testid="filter-condition"
+        <button
+          onClick={() => setSortBy('name')}
+          className={`btn-pokemon text-sm py-2 px-4 ${sortBy === 'name' ? '' : 'btn-pokemon-outline'}`}
         >
-          <option value="">Toutes conditions</option>
-          <option value="mint">Mint</option>
-          <option value="exc">Excellent</option>
-          <option value="good">Bon état</option>
-          <option value="poor">Usée</option>
-        </select>
-        
-        <select
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value)}
-          className="bg-background-surface border border-border rounded-xl px-4 py-2 text-white"
-          data-testid="sort-by"
+          A-Z
+        </button>
+        <button
+          onClick={() => setSortBy('price')}
+          className={`btn-pokemon text-sm py-2 px-4 ${sortBy === 'price' ? '' : 'btn-pokemon-outline'}`}
         >
-          <option value="date">Plus récent</option>
-          <option value="name">A-Z</option>
-          <option value="price">Prix</option>
-        </select>
+          💰 Prix
+        </button>
+        <button
+          onClick={() => setSortBy('date')}
+          className={`btn-pokemon text-sm py-2 px-4 ${sortBy === 'date' ? '' : 'btn-pokemon-outline'}`}
+        >
+          🕐 Récent
+        </button>
       </div>
 
       {/* Cards Grid */}
       {loading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {[...Array(10)].map((_, i) => (
-            <div key={i} className="bg-background-surface rounded-2xl aspect-[2/3] shimmer" />
+            <div key={i} className="bg-gray-200 rounded-2xl aspect-[2/3] animate-pulse" />
           ))}
         </div>
       ) : cards.length === 0 ? (
         <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="text-center py-20"
+          className="text-center py-16"
         >
-          <Package size={64} className="mx-auto text-gray-600 mb-4" />
-          <h3 className="font-heading text-2xl text-gray-400 mb-2">Collection vide</h3>
-          <p className="text-gray-500 mb-6">Ajoutez votre première carte!</p>
-          <button
-            onClick={onAddClick}
-            className="holographic text-white font-bold py-3 px-6 rounded-xl"
-            data-testid="add-first-card"
-          >
-            <Plus className="inline mr-2" size={20} />
-            Ajouter une carte
+          <div className="text-6xl mb-4">🎴</div>
+          <h3 className="text-2xl font-bold text-gray-400 mb-2" style={{ fontFamily: "'Fredoka One', cursive" }}>Classeur vide !</h3>
+          <p className="text-gray-500 mb-6">Ajoute ta première carte en cliquant sur <strong>"Ajouter une carte"</strong></p>
+          <button onClick={onAddClick} className="btn-pokemon" data-testid="add-first-card">
+            + Ajouter une carte
           </button>
         </motion.div>
       ) : (
@@ -400,34 +389,32 @@ function CollectionView({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
               onClick={() => onCardClick(card)}
-              className="card-3d cursor-pointer group"
+              className="pokemon-card card-pokemon cursor-pointer overflow-hidden"
               data-testid={`card-${card._id}`}
             >
-              <div className="bg-background-surface border border-border rounded-2xl overflow-hidden hover:border-accent-primary/50 transition-colors">
-                <div className="relative aspect-[2/3] bg-background-elevated">
-                  <img 
-                    src={card.image_url} 
-                    alt={card.card_name}
-                    className="w-full h-full object-contain"
-                    loading="lazy"
-                  />
-                  {card.quantity > 1 && (
-                    <div className="absolute top-2 left-2 bg-background/80 backdrop-blur px-2 py-1 rounded-lg text-xs font-bold">
-                      x{card.quantity}
-                    </div>
-                  )}
-                  <div className={`absolute top-2 right-2 w-3 h-3 rounded-full ${
-                    card.condition === 'mint' ? 'bg-green-400' :
-                    card.condition === 'exc' ? 'bg-blue-400' :
-                    card.condition === 'good' ? 'bg-yellow-400' : 'bg-red-400'
-                  }`} />
-                </div>
-                <div className="p-3">
-                  <h3 className="font-semibold text-sm truncate">{card.pokemon_name}</h3>
-                  <p className="text-xs text-gray-500 truncate">{card.set_name}</p>
-                  <div className="mt-2 inline-block bg-accent-tertiary/20 text-accent-tertiary px-2 py-1 rounded-lg text-sm font-bold">
-                    {card.price.toFixed(2)}€
+              <div className="relative aspect-[2/3] bg-gradient-to-b from-gray-100 to-gray-200">
+                <img 
+                  src={card.image_url} 
+                  alt={card.card_name}
+                  className="w-full h-full object-contain"
+                  loading="lazy"
+                />
+                {card.quantity > 1 && (
+                  <div className="absolute top-2 left-2 bg-[#1a1a2e] text-white px-2 py-1 rounded-full text-xs font-bold">
+                    x{card.quantity}
                   </div>
+                )}
+                <div className={`absolute top-2 right-2 w-3 h-3 rounded-full border-2 border-white ${
+                  card.condition === 'mint' ? 'bg-green-400' :
+                  card.condition === 'exc' ? 'bg-blue-400' :
+                  card.condition === 'good' ? 'bg-yellow-400' : 'bg-red-400'
+                }`} />
+              </div>
+              <div className="p-3 border-t-2 border-gray-200">
+                <h3 className="font-bold text-sm truncate">{card.pokemon_name}</h3>
+                <p className="text-xs text-gray-500 truncate">{card.set_name}</p>
+                <div className="mt-2 inline-block bg-[#FFD93D] border-2 border-[#1a1a2e] px-2 py-1 rounded-full text-sm font-bold">
+                  {card.price.toFixed(2)}€
                 </div>
               </div>
             </motion.div>
@@ -446,83 +433,65 @@ function StatsView({ stats, topCards }) {
 
   return (
     <div className="space-y-6">
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <StatCard emoji="🎴" title="Total cartes" value={stats?.total_cards || 0} />
-        <StatCard emoji="💰" title="Valeur totale" value={`${(stats?.total_value || 0).toFixed(2)}€`} large />
-        <StatCard emoji="📈" title="Valeur moyenne" value={`${(stats?.avg_value || 0).toFixed(2)}€`} />
-        <StatCard emoji="🏆" title="Carte la + chère" value={stats?.top_card?.name || '—'} sub={stats?.top_card?.price ? `${stats.top_card.price}€` : ''} />
-        <StatCard emoji="✨" title="En parfait état" value={stats?.mint_count || 0} />
-        <StatCard emoji="🎲" title="Pokemon différents" value={stats?.unique_pokemon || 0} />
+      <div className="card-pokemon p-6">
+        <h2 className="text-2xl font-bold mb-4" style={{ fontFamily: "'Fredoka One', cursive" }}>
+          📊 Statistiques de ma collection
+        </h2>
+        
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+          <StatCard emoji="🎴" title="Total cartes" value={stats?.total_cards || 0} />
+          <StatCard emoji="💰" title="Valeur totale" value={`${(stats?.total_value || 0).toFixed(2)}€`} highlight />
+          <StatCard emoji="📈" title="Valeur moyenne" value={`${(stats?.avg_value || 0).toFixed(2)}€`} />
+          <StatCard emoji="🏆" title="Carte la + chère" value={stats?.top_card?.name || '—'} sub={stats?.top_card?.price ? `${stats.top_card.price}€` : ''} />
+          <StatCard emoji="✨" title="En parfait état" value={stats?.mint_count || 0} />
+          <StatCard emoji="🎲" title="Pokémon différents" value={stats?.unique_pokemon || 0} />
+        </div>
       </div>
 
-      {/* Chart */}
-      {topCards.length > 0 && (
-        <div className="bg-background-surface border border-border rounded-2xl p-6">
-          <h3 className="font-heading text-xl font-bold mb-4">Top 5 cartes les plus chères</h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={priceData}>
-                <XAxis dataKey="name" stroke="#6B6B78" fontSize={12} />
-                <YAxis stroke="#6B6B78" fontSize={12} />
-                <Tooltip 
-                  contentStyle={{ 
-                    background: '#121218', 
-                    border: '1px solid #2D2D3B',
-                    borderRadius: '8px'
-                  }} 
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="value" 
-                  stroke="#FF007F" 
-                  strokeWidth={3}
-                  dot={{ fill: '#00F0FF', strokeWidth: 2 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      )}
-
-      {/* Top Cards List */}
-      <div className="bg-background-surface border border-border rounded-2xl p-6">
-        <h3 className="font-heading text-xl font-bold mb-4">🏅 Mes 5 cartes les plus précieuses</h3>
+      {/* Top Cards */}
+      <div className="card-pokemon p-6">
+        <h3 className="text-xl font-bold mb-4" style={{ fontFamily: "'Fredoka One', cursive" }}>
+          🏅 Mes 5 cartes les plus précieuses
+        </h3>
         <div className="space-y-3">
           {topCards.map((card, index) => (
             <div 
               key={card._id}
-              className="flex items-center gap-4 p-3 bg-background-elevated rounded-xl border border-border hover:border-accent-tertiary/50 transition-colors"
+              className="flex items-center gap-4 bg-gray-50 border-2 border-gray-200 rounded-xl p-3 hover:border-[#FFD93D] transition-colors"
             >
-              <div className={`font-heading text-2xl font-bold ${
-                index === 0 ? 'text-yellow-400' : 
+              <div className={`text-2xl font-bold ${
+                index === 0 ? 'text-yellow-500' : 
                 index === 1 ? 'text-gray-400' : 
-                index === 2 ? 'text-orange-400' : 'text-gray-600'
-              }`}>
+                index === 2 ? 'text-orange-400' : 'text-gray-300'
+              }`} style={{ fontFamily: "'Fredoka One', cursive" }}>
                 #{index + 1}
               </div>
-              <img src={card.image_url} alt={card.card_name} className="w-12 h-16 object-contain rounded" />
+              <img src={card.image_url} alt={card.card_name} className="w-12 h-16 object-contain rounded border-2 border-gray-300" />
               <div className="flex-1">
-                <div className="font-semibold">{card.pokemon_name}</div>
+                <div className="font-bold">{card.pokemon_name}</div>
                 <div className="text-sm text-gray-500">{card.set_name}</div>
               </div>
-              <div className="font-heading text-xl font-bold text-accent-tertiary">
+              <div className="text-xl font-bold text-[#FF9F1C]" style={{ fontFamily: "'Fredoka One', cursive" }}>
                 {card.price.toFixed(2)}€
               </div>
             </div>
           ))}
+          {topCards.length === 0 && (
+            <p className="text-center text-gray-500 py-8">Aucune carte dans ta collection</p>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-function StatCard({ emoji, title, value, sub, large }) {
+function StatCard({ emoji, title, value, sub, highlight }) {
   return (
-    <div className="bg-background-surface border border-border rounded-2xl p-5 text-center">
+    <div className={`p-4 rounded-2xl text-center border-3 ${highlight ? 'bg-[#FFD93D] border-[#1a1a2e]' : 'bg-gray-50 border-gray-200'}`}>
       <div className="text-3xl mb-2">{emoji}</div>
-      <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">{title}</div>
-      <div className={`font-heading font-bold ${large ? 'text-2xl text-accent-tertiary' : 'text-xl'}`}>
+      <div className="text-xs text-gray-600 font-bold uppercase">{title}</div>
+      <div className={`text-xl font-bold ${highlight ? 'text-[#1a1a2e]' : ''}`} style={{ fontFamily: "'Fredoka One', cursive" }}>
         {value}
       </div>
       {sub && <div className="text-sm text-gray-500">{sub}</div>}
@@ -531,7 +500,7 @@ function StatCard({ emoji, title, value, sub, large }) {
 }
 
 function AddCardModal({ onClose, onSuccess }) {
-  const [step, setStep] = useState(1); // 1: upload/search, 2: select card, 3: confirm
+  const [step, setStep] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [selectedCard, setSelectedCard] = useState(null);
@@ -595,7 +564,6 @@ function AddCardModal({ onClose, onSuccess }) {
 
   const selectCard = (card) => {
     setSelectedCard(card);
-    // Get market price if available
     let price = 0;
     if (card.prices) {
       const priceKeys = ['holofoil', 'reverseHolofoil', 'normal', 'unlimited'];
@@ -639,101 +607,110 @@ function AddCardModal({ onClose, onSuccess }) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+      className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className="bg-background-surface border border-border rounded-3xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+        className="card-pokemon p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto"
       >
         <div className="flex items-center justify-between mb-6">
-          <h2 className="font-heading text-2xl font-bold">
+          <h2 className="text-2xl font-bold" style={{ fontFamily: "'Fredoka One', cursive" }}>
             {step === 1 && '📷 Ajouter une carte'}
             {step === 2 && '🔍 Sélectionner la carte'}
-            {step === 3 && '✅ Confirmer'}
+            {step === 3 && '✅ Confirmer l\'ajout'}
           </h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-white" data-testid="close-modal">
-            <X size={24} />
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-2xl" data-testid="close-modal">
+            ✕
           </button>
         </div>
 
         {step === 1 && (
           <div className="space-y-6">
+            <p className="text-gray-600 text-center">
+              Prends en photo ta carte ou cherche son nom pour trouver la belle image officielle !
+            </p>
+            
             {/* Upload Zone */}
             <div
               {...getRootProps()}
-              className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all ${
-                isDragActive ? 'border-accent-primary bg-accent-primary/10' : 'border-border hover:border-accent-secondary'
-              }`}
+              className={`upload-zone text-center ${isDragActive ? 'border-[#1a1a2e] bg-[#d8f7f5]' : ''}`}
               data-testid="dropzone"
             >
               <input {...getInputProps()} />
               {uploadedImage ? (
                 <div className="flex flex-col items-center gap-4">
-                  <img src={uploadedImage} alt="Preview" className="max-h-40 rounded-xl" />
+                  <img src={uploadedImage} alt="Preview" className="max-h-40 rounded-xl border-2 border-gray-300" />
                   {analyzing && (
-                    <div className="flex items-center gap-2 text-accent-secondary">
-                      <div className="w-5 h-5 border-2 border-accent-secondary/30 border-t-accent-secondary rounded-full animate-spin" />
+                    <div className="flex items-center gap-2 text-[#4ECDC4] font-semibold">
+                      <div className="w-5 h-5 border-2 border-[#4ECDC4]/30 border-t-[#4ECDC4] rounded-full animate-spin" />
                       Analyse IA en cours...
                     </div>
                   )}
                 </div>
               ) : (
                 <>
-                  <Camera size={48} className="mx-auto text-gray-500 mb-4" />
-                  <p className="text-gray-300 font-semibold">
-                    {isDragActive ? 'Déposez la photo ici' : 'Cliquez ou glissez une photo'}
+                  <div className="text-5xl mb-3">📸</div>
+                  <p className="text-[#4ECDC4] font-bold text-lg">
+                    {isDragActive ? 'Dépose la photo ici !' : 'Clique ou glisse une photo ici'}
                   </p>
-                  <p className="text-sm text-gray-500 mt-2">L'IA reconnaîtra automatiquement la carte</p>
+                  <p className="text-gray-400 text-sm mt-2">JPG, PNG, WEBP acceptés</p>
                 </>
               )}
             </div>
 
             {/* Manual Search */}
-            <div className="text-center text-gray-500">ou recherchez manuellement</div>
-            
-            <div className="flex gap-3">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch(searchQuery)}
-                placeholder="Nom du Pokemon (ex: Pikachu, Dracaufeu...)"
-                className="flex-1 bg-background border border-border rounded-xl px-4 py-3 text-white placeholder-gray-500"
-                data-testid="search-card-input"
-              />
-              <button
-                onClick={() => handleSearch(searchQuery)}
-                disabled={loading || searchQuery.length < 2}
-                className="holographic text-white font-bold px-6 rounded-xl disabled:opacity-50"
-                data-testid="search-card-btn"
-              >
-                {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Search size={20} />}
-              </button>
+            <div className="card-pokemon p-6">
+              <h3 className="text-xl font-bold mb-3 text-center" style={{ fontFamily: "'Fredoka One', cursive" }}>
+                🔍 Chercher la carte
+              </h3>
+              <p className="text-gray-600 text-center text-sm mb-4">
+                Entre le nom du Pokémon ou le numéro de la carte
+              </p>
+              <div className="flex gap-3">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch(searchQuery)}
+                  placeholder="Ex: Dracaufeu, Pikachu, Mewtwo..."
+                  className="flex-1 input-pokemon"
+                  data-testid="search-card-input"
+                />
+                <button
+                  onClick={() => handleSearch(searchQuery)}
+                  disabled={loading || searchQuery.length < 2}
+                  className="btn-pokemon disabled:opacity-50"
+                  data-testid="search-card-btn"
+                >
+                  {loading ? '...' : '🔍 Chercher'}
+                </button>
+              </div>
             </div>
           </div>
         )}
 
         {step === 2 && (
           <div>
-            <button onClick={() => setStep(1)} className="text-accent-secondary mb-4 hover:underline">
+            <button onClick={() => setStep(1)} className="text-[#4ECDC4] font-bold mb-4 hover:underline">
               ← Retour
             </button>
+            <h3 className="font-bold mb-3">Résultats de recherche</h3>
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 max-h-[60vh] overflow-y-auto">
               {searchResults.map(card => (
                 <div
                   key={card.id}
                   onClick={() => selectCard(card)}
-                  className={`cursor-pointer rounded-xl overflow-hidden border-2 transition-all hover:scale-105 ${
-                    selectedCard?.id === card.id ? 'border-accent-primary' : 'border-border hover:border-accent-secondary'
+                  className={`cursor-pointer rounded-xl overflow-hidden border-3 transition-all hover:scale-105 ${
+                    selectedCard?.id === card.id ? 'border-[#FFD93D]' : 'border-gray-200 hover:border-[#4ECDC4]'
                   }`}
                   data-testid={`search-result-${card.id}`}
                 >
-                  <img src={card.image} alt={card.name} className="w-full aspect-[2/3] object-contain bg-background" />
-                  <div className="p-2 bg-background-elevated">
-                    <p className="text-xs font-semibold truncate">{card.name}</p>
+                  <img src={card.image} alt={card.name} className="w-full aspect-[2/3] object-contain bg-gray-100" />
+                  <div className="p-2 bg-white border-t-2 border-gray-100">
+                    <p className="text-xs font-bold truncate">{card.name}</p>
                     <p className="text-xs text-gray-500 truncate">{card.set}</p>
                   </div>
                 </div>
@@ -741,7 +718,7 @@ function AddCardModal({ onClose, onSuccess }) {
             </div>
             {searchResults.length === 0 && (
               <div className="text-center py-12 text-gray-500">
-                Aucun résultat. Essayez un autre nom.
+                Aucun résultat. Essaie un autre nom !
               </div>
             )}
           </div>
@@ -749,21 +726,21 @@ function AddCardModal({ onClose, onSuccess }) {
 
         {step === 3 && selectedCard && (
           <div>
-            <button onClick={() => setStep(2)} className="text-accent-secondary mb-4 hover:underline">
+            <button onClick={() => setStep(2)} className="text-[#4ECDC4] font-bold mb-4 hover:underline">
               ← Retour
             </button>
             <div className="flex flex-col sm:flex-row gap-6">
               <img 
                 src={selectedCard.image_large || selectedCard.image} 
                 alt={selectedCard.name}
-                className="w-40 rounded-xl mx-auto sm:mx-0"
+                className="w-40 rounded-xl border-3 border-[#1a1a2e] mx-auto sm:mx-0"
               />
               <div className="flex-1 space-y-4">
                 <div>
-                  <h3 className="font-heading text-xl font-bold">{selectedCard.name}</h3>
+                  <h3 className="text-xl font-bold" style={{ fontFamily: "'Fredoka One', cursive" }}>{selectedCard.name}</h3>
                   <p className="text-gray-500">{selectedCard.set} • #{selectedCard.number}</p>
                   {selectedCard.rarity && (
-                    <span className="inline-block mt-1 bg-accent-primary/20 text-accent-primary px-2 py-1 rounded text-xs">
+                    <span className="inline-block mt-1 bg-purple-100 text-purple-700 px-2 py-1 rounded-full text-xs font-bold border border-purple-300">
                       {selectedCard.rarity}
                     </span>
                   )}
@@ -771,35 +748,35 @@ function AddCardModal({ onClose, onSuccess }) {
                 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm text-gray-400 mb-1">Prix (€)</label>
+                    <label className="block text-sm font-bold text-gray-600 mb-1">💰 Prix (€)</label>
                     <input
                       type="number"
                       step="0.01"
                       value={formData.price}
                       onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                      className="w-full bg-background border border-border rounded-xl px-3 py-2 text-white"
+                      className="w-full input-pokemon text-sm"
                       data-testid="price-input"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm text-gray-400 mb-1">Quantité</label>
+                    <label className="block text-sm font-bold text-gray-600 mb-1">🔢 Quantité</label>
                     <input
                       type="number"
                       min="1"
                       value={formData.quantity}
                       onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                      className="w-full bg-background border border-border rounded-xl px-3 py-2 text-white"
+                      className="w-full input-pokemon text-sm"
                       data-testid="quantity-input"
                     />
                   </div>
                 </div>
                 
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Condition</label>
+                  <label className="block text-sm font-bold text-gray-600 mb-1">📊 Condition</label>
                   <select
                     value={formData.condition}
                     onChange={(e) => setFormData({ ...formData, condition: e.target.value })}
-                    className="w-full bg-background border border-border rounded-xl px-3 py-2 text-white"
+                    className="w-full input-pokemon"
                     data-testid="condition-select"
                   >
                     <option value="mint">✨ Mint (Parfaite)</option>
@@ -809,14 +786,19 @@ function AddCardModal({ onClose, onSuccess }) {
                   </select>
                 </div>
                 
-                <button
-                  onClick={handleSubmit}
-                  disabled={loading}
-                  className="w-full holographic text-white font-bold py-3 rounded-xl disabled:opacity-50"
-                  data-testid="add-card-submit"
-                >
-                  {loading ? 'Ajout en cours...' : '✅ Ajouter au classeur'}
-                </button>
+                <div className="flex gap-3 mt-4">
+                  <button
+                    onClick={handleSubmit}
+                    disabled={loading}
+                    className="flex-1 btn-pokemon disabled:opacity-50"
+                    data-testid="add-card-submit"
+                  >
+                    {loading ? 'Ajout...' : '✅ Ajouter au classeur'}
+                  </button>
+                  <button onClick={onClose} className="btn-pokemon btn-pokemon-outline" style={{ background: '#FF6B6B', color: 'white' }}>
+                    ✖ Annuler
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -840,41 +822,39 @@ function CardDetailModal({ card, onClose, onDelete, onUpdatePrice }) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+      className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className="bg-background-surface border border-border rounded-3xl p-6 w-full max-w-md"
+        className="card-pokemon p-6 w-full max-w-md"
       >
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-heading text-xl font-bold">{card.card_name}</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-white">
-            <X size={24} />
-          </button>
+          <h2 className="text-xl font-bold" style={{ fontFamily: "'Fredoka One', cursive" }}>{card.card_name}</h2>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-xl">✕</button>
         </div>
 
         <div className="flex gap-6">
-          <img src={card.image_url} alt={card.card_name} className="w-32 rounded-xl" />
+          <img src={card.image_url} alt={card.card_name} className="w-32 rounded-xl border-3 border-[#1a1a2e]" />
           <div className="flex-1 space-y-3">
             <div>
-              <div className="text-xs text-gray-500 uppercase">Extension</div>
-              <div className="font-semibold">{card.set_name}</div>
+              <div className="text-xs text-gray-500 font-bold uppercase">Extension</div>
+              <div className="font-bold">{card.set_name}</div>
             </div>
             <div>
-              <div className="text-xs text-gray-500 uppercase">Condition</div>
-              <div className={CONDITION_LABELS[card.condition]?.color}>
+              <div className="text-xs text-gray-500 font-bold uppercase">Condition</div>
+              <span className={`inline-block px-2 py-1 rounded-full text-xs font-bold ${CONDITION_LABELS[card.condition]?.bg}`}>
                 {CONDITION_LABELS[card.condition]?.label || card.condition}
-              </div>
+              </span>
             </div>
             <div>
-              <div className="text-xs text-gray-500 uppercase">Quantité</div>
-              <div className="font-semibold">{card.quantity}</div>
+              <div className="text-xs text-gray-500 font-bold uppercase">Quantité</div>
+              <div className="font-bold">{card.quantity}</div>
             </div>
             <div>
-              <div className="text-xs text-gray-500 uppercase">Valeur</div>
+              <div className="text-xs text-gray-500 font-bold uppercase">Valeur</div>
               {editing ? (
                 <div className="flex gap-2">
                   <input
@@ -882,23 +862,15 @@ function CardDetailModal({ card, onClose, onDelete, onUpdatePrice }) {
                     step="0.01"
                     value={newPrice}
                     onChange={(e) => setNewPrice(e.target.value)}
-                    className="w-20 bg-background border border-border rounded px-2 py-1 text-white text-sm"
+                    className="w-20 input-pokemon text-sm py-1"
                     autoFocus
                   />
-                  <button 
-                    onClick={handleSavePrice}
-                    className="bg-green-500 text-white px-2 py-1 rounded text-sm"
-                  >
-                    ✓
-                  </button>
+                  <button onClick={handleSavePrice} className="btn-pokemon text-sm py-1 px-3">✓</button>
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
-                  <span className="font-heading text-2xl text-accent-tertiary">{card.price.toFixed(2)}€</span>
-                  <button 
-                    onClick={() => setEditing(true)}
-                    className="text-gray-500 hover:text-accent-secondary"
-                  >
+                  <span className="text-2xl font-bold text-[#FF9F1C]" style={{ fontFamily: "'Fredoka One', cursive" }}>{card.price.toFixed(2)}€</span>
+                  <button onClick={() => setEditing(true)} className="text-gray-400 hover:text-gray-600">
                     <Edit3 size={16} />
                   </button>
                 </div>
@@ -910,16 +882,14 @@ function CardDetailModal({ card, onClose, onDelete, onUpdatePrice }) {
         <div className="flex gap-3 mt-6">
           <button
             onClick={() => onDelete(card._id)}
-            className="flex-1 flex items-center justify-center gap-2 bg-red-500/20 text-red-400 border border-red-500/50 py-2 rounded-xl hover:bg-red-500/30"
+            className="flex-1 btn-pokemon flex items-center justify-center gap-2"
+            style={{ background: '#FF6B6B', color: 'white' }}
             data-testid="delete-card-btn"
           >
             <Trash2 size={18} />
             Supprimer
           </button>
-          <button
-            onClick={onClose}
-            className="flex-1 bg-background-elevated border border-border py-2 rounded-xl hover:border-accent-primary/50"
-          >
+          <button onClick={onClose} className="flex-1 btn-pokemon btn-pokemon-outline">
             Fermer
           </button>
         </div>
@@ -934,41 +904,37 @@ function ShareModal({ link, onClose, onCopy }) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+      className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className="bg-background-surface border border-border rounded-3xl p-6 w-full max-w-md text-center"
+        className="card-pokemon p-6 w-full max-w-md text-center"
       >
-        <Share2 size={48} className="mx-auto text-accent-secondary mb-4" />
-        <h2 className="font-heading text-2xl font-bold mb-2">Partager ma collection</h2>
-        <p className="text-gray-400 mb-6">Partagez ce lien avec vos amis!</p>
+        <div className="text-5xl mb-4">🔗</div>
+        <h2 className="text-2xl font-bold mb-2" style={{ fontFamily: "'Fredoka One', cursive" }}>Partager ma collection</h2>
+        <p className="text-gray-500 mb-6">Partage ce lien avec tes amis !</p>
         
         <div className="flex gap-2 mb-6">
           <input
             type="text"
             value={link}
             readOnly
-            className="flex-1 bg-background border border-border rounded-xl px-4 py-2 text-white text-sm"
+            className="flex-1 input-pokemon text-sm"
           />
-          <button
-            onClick={onCopy}
-            className="bg-accent-secondary text-black px-4 rounded-xl font-bold hover:opacity-90"
-            data-testid="copy-link-btn"
-          >
-            <Copy size={20} />
+          <button onClick={onCopy} className="btn-pokemon" data-testid="copy-link-btn">
+            📋 Copier
           </button>
         </div>
         
         <button
           onClick={() => window.open(link, '_blank')}
-          className="flex items-center justify-center gap-2 w-full bg-background-elevated border border-border py-2 rounded-xl hover:border-accent-primary/50"
+          className="w-full btn-pokemon btn-pokemon-outline flex items-center justify-center gap-2"
         >
           <ExternalLink size={18} />
-          Ouvrir
+          Ouvrir le lien
         </button>
       </motion.div>
     </motion.div>
