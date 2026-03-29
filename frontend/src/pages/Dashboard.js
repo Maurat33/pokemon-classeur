@@ -1177,7 +1177,7 @@ function AddCardModal({ onClose, onSuccess }) {
           // Pre-fill French name
           const frName = analysis.pokemon_name_fr || analysis.pokemon_name_en || '';
           setSearchQuery(frName);
-          setFormData(prev => ({ ...prev, frenchName: frName, condition: analysis.condition || 'good', useOwnPhoto: true }));
+          setFormData(prev => ({ ...prev, frenchName: frName, condition: analysis.condition || 'good', useOwnPhoto: false }));
           
           // If exact match (1 result or first result matches number), auto-select
           if (analysis.tcg_matches.length === 1) {
@@ -1214,7 +1214,7 @@ function AddCardModal({ onClose, onSuccess }) {
         }
       }
     }
-    setFormData(prev => ({ ...prev, price: price.toFixed(2), frenchName: frenchName || prev.frenchName, condition: condition || prev.condition, useOwnPhoto: true }));
+    setFormData(prev => ({ ...prev, price: price.toFixed(2), frenchName: frenchName || prev.frenchName, condition: condition || prev.condition, useOwnPhoto: false }));
     setStep(3);
   };
 
