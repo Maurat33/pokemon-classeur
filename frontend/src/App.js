@@ -5,6 +5,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import AuthPage from './pages/AuthPage';
 import Dashboard from './pages/Dashboard';
 import SharedCollection from './pages/SharedCollection';
+import VitrinePage from './pages/VitrinePage';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -56,6 +57,7 @@ function AppRoutes() {
         </ProtectedRoute>
       } />
       <Route path="/share/:token" element={<SharedCollection />} />
+      <Route path="/vitrine/:token" element={<VitrinePage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

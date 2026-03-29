@@ -87,6 +87,44 @@ export const updateChildAvatar = async (avatarBase64, childEmail = 'leo@pokemon.
   return data;
 };
 
+// Binders
+export const getBinders = async () => {
+  const { data } = await api.get('/api/binders');
+  return data;
+};
+
+export const createBinder = async (binderData) => {
+  const { data } = await api.post('/api/binders', binderData);
+  return data;
+};
+
+export const updateBinder = async (binderId, updates) => {
+  const { data } = await api.put(`/api/binders/${binderId}`, updates);
+  return data;
+};
+
+export const deleteBinder = async (binderId) => {
+  const { data } = await api.delete(`/api/binders/${binderId}`);
+  return data;
+};
+
+// Cards by set
+export const getCardsBySet = async () => {
+  const { data } = await api.get('/api/cards/by-set');
+  return data;
+};
+
+// Vitrine
+export const createVitrine = async (title, description) => {
+  const { data } = await api.post('/api/vitrine/create', { title, description });
+  return data;
+};
+
+export const getVitrine = async (token) => {
+  const { data } = await api.get(`/api/vitrine/${token}`);
+  return data;
+};
+
 export const formatApiError = (detail) => {
   if (detail == null) return "Une erreur est survenue. Veuillez réessayer.";
   if (typeof detail === "string") return detail;

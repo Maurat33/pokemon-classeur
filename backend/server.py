@@ -208,11 +208,19 @@ class CardCreate(BaseModel):
     quantity: int = 1
     tcg_id: Optional[str] = None
     rarity: Optional[str] = None
+    types: Optional[List[str]] = None
+    binder_id: Optional[str] = None
 
 class CardUpdate(BaseModel):
     price: Optional[float] = None
     condition: Optional[str] = None
     quantity: Optional[int] = None
+    binder_id: Optional[str] = None
+
+class BinderCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=50)
+    description: Optional[str] = None
+    color: str = "from-purple-500 to-pink-500"
 
 class AIAnalyzeRequest(BaseModel):
     image_base64: str
@@ -373,8 +381,11 @@ async def search_pokemon(q: str, page: int = 1, pageSize: int = 20):
                     "id": card.get("id"),
                     "name": card.get("name"),
                     "set": card.get("set", {}).get("name", "Unknown"),
+                    "set_id": card.get("set", {}).get("id", ""),
+                    "set_total": card.get("set", {}).get("printedTotal", 0),
                     "number": card.get("number"),
                     "rarity": card.get("rarity"),
+                    "types": card.get("types", []),
                     "image": card.get("images", {}).get("small"),
                     "image_large": card.get("images", {}).get("large"),
                     "prices": card.get("tcgplayer", {}).get("prices", {}),
@@ -494,6 +505,8 @@ async def create_card(data: CardCreate, request: Request):
         "quantity": data.quantity,
         "tcg_id": data.tcg_id,
         "rarity": data.rarity,
+        "types": data.types or [],
+        "binder_id": data.binder_id,
         "created_at": datetime.now(timezone.utc),
         "price_history": [{"price": data.price, "date": datetime.now(timezone.utc).isoformat()}]
     }
@@ -522,6 +535,8 @@ async def update_card(card_id: str, data: CardUpdate, request: Request):
         update_data["condition"] = data.condition
     if data.quantity is not None:
         update_data["quantity"] = data.quantity
+    if data.binder_id is not None:
+        update_data["binder_id"] = data.binder_id
     
     if "$push" in update_data:
         push_data = update_data.pop("$push")
@@ -777,6 +792,191 @@ async def export_excel(request: Request):
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f"attachment; filename=collection_{datetime.now().strftime('%Y%m%d')}.xlsx"}
     )
+
+# ============ BINDERS / CLASSEURS ============
+@app.get("/api/binders")
+async def get_binders(request: Request):
+    user = await get_current_user(request)
+    target_id = user["_id"]
+    if user.get("role") == "child":
+        admin = await db.users.find_one({"role": "admin"})
+        if admin:
+            target_id = str(admin["_id"])
+    
+    cursor = db.binders.find({"user_id": target_id}).sort("created_at", -1)
+    binders = []
+    async for b in cursor:
+        b["_id"] = str(b["_id"])
+        binders.append(b)
+    return {"binders": binders}
+
+@app.post("/api/binders")
+async def create_binder(data: BinderCreate, request: Request):
+    user = await get_current_user(request)
+    if user.get("role") == "child":
+        raise HTTPException(status_code=403, detail="Les enfants ne peuvent pas créer de classeurs")
+    
+    binder_doc = {
+        "user_id": user["_id"],
+        "name": data.name,
+        "description": data.description,
+        "color": data.color,
+        "created_at": datetime.now(timezone.utc)
+    }
+    result = await db.binders.insert_one(binder_doc)
+    binder_doc["_id"] = str(result.inserted_id)
+    return binder_doc
+
+@app.put("/api/binders/{binder_id}")
+async def update_binder(binder_id: str, request: Request):
+    user = await get_current_user(request)
+    if user.get("role") == "child":
+        raise HTTPException(status_code=403, detail="Accès refusé")
+    
+    data = await request.json()
+    update_data = {}
+    if "name" in data:
+        update_data["name"] = data["name"]
+    if "description" in data:
+        update_data["description"] = data["description"]
+    if "color" in data:
+        update_data["color"] = data["color"]
+    
+    if update_data:
+        await db.binders.update_one(
+            {"_id": ObjectId(binder_id), "user_id": user["_id"]},
+            {"$set": update_data}
+        )
+    
+    updated = await db.binders.find_one({"_id": ObjectId(binder_id)})
+    if not updated:
+        raise HTTPException(status_code=404, detail="Classeur non trouvé")
+    updated["_id"] = str(updated["_id"])
+    return updated
+
+@app.delete("/api/binders/{binder_id}")
+async def delete_binder(binder_id: str, request: Request):
+    user = await get_current_user(request)
+    if user.get("role") == "child":
+        raise HTTPException(status_code=403, detail="Accès refusé")
+    
+    result = await db.binders.delete_one({"_id": ObjectId(binder_id), "user_id": user["_id"]})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Classeur non trouvé")
+    
+    # Remove binder_id from cards in this binder
+    await db.cards.update_many(
+        {"binder_id": binder_id},
+        {"$set": {"binder_id": None}}
+    )
+    return {"message": "Classeur supprimé"}
+
+# ============ CARDS BY SET (for set grouping view) ============
+@app.get("/api/cards/by-set")
+async def get_cards_by_set(request: Request):
+    user = await get_current_user(request)
+    target_id = user["_id"]
+    if user.get("role") == "child":
+        admin = await db.users.find_one({"role": "admin"})
+        if admin:
+            target_id = str(admin["_id"])
+    
+    pipeline = [
+        {"$match": {"user_id": target_id}},
+        {"$group": {
+            "_id": "$set_name",
+            "count": {"$sum": "$quantity"},
+            "total_value": {"$sum": {"$multiply": ["$price", "$quantity"]}},
+            "cards": {"$push": {
+                "id": {"$toString": "$_id"},
+                "pokemon_name": "$pokemon_name",
+                "card_name": "$card_name",
+                "image_url": "$image_url",
+                "price": "$price",
+                "rarity": "$rarity",
+                "types": "$types"
+            }}
+        }},
+        {"$sort": {"count": -1}}
+    ]
+    
+    sets = await db.cards.aggregate(pipeline).to_list(100)
+    return {"sets": [{"set_name": s["_id"], "count": s["count"], "total_value": round(s["total_value"], 2), "cards": s["cards"]} for s in sets]}
+
+# ============ VITRINE (Public Showcase) ============
+@app.post("/api/vitrine/create")
+async def create_vitrine(request: Request):
+    user = await get_current_user(request)
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Seul l'admin peut créer une vitrine")
+    
+    data = await request.json()
+    vitrine_token = secrets.token_urlsafe(16)
+    
+    await db.vitrines.update_one(
+        {"user_id": user["_id"]},
+        {"$set": {
+            "token": vitrine_token,
+            "title": data.get("title", "Ma Collection Pokémon"),
+            "description": data.get("description", ""),
+            "user_name": user.get("name", "Collectionneur"),
+            "created_at": datetime.now(timezone.utc)
+        }},
+        upsert=True
+    )
+    return {"token": vitrine_token}
+
+@app.get("/api/vitrine/{token}")
+async def get_vitrine(token: str):
+    vitrine = await db.vitrines.find_one({"token": token})
+    if not vitrine:
+        raise HTTPException(status_code=404, detail="Vitrine non trouvée")
+    
+    cursor = db.cards.find({"user_id": vitrine["user_id"]}).sort("price", -1)
+    cards = []
+    async for card in cursor:
+        cards.append({
+            "pokemon_name": card.get("pokemon_name"),
+            "card_name": card.get("card_name"),
+            "set_name": card.get("set_name"),
+            "image_url": card.get("image_url"),
+            "price": card.get("price", 0),
+            "condition": card.get("condition"),
+            "rarity": card.get("rarity"),
+            "types": card.get("types", []),
+            "quantity": card.get("quantity", 1)
+        })
+    
+    total_value = sum(c["price"] * c["quantity"] for c in cards)
+    total_cards = sum(c["quantity"] for c in cards)
+    
+    # Group by type
+    type_counts = {}
+    for c in cards:
+        for t in c.get("types", []):
+            type_counts[t] = type_counts.get(t, 0) + c["quantity"]
+    
+    # Group by set
+    set_counts = {}
+    for c in cards:
+        sn = c.get("set_name", "Inconnu")
+        if sn not in set_counts:
+            set_counts[sn] = 0
+        set_counts[sn] += c["quantity"]
+    
+    return {
+        "title": vitrine.get("title", "Ma Collection"),
+        "description": vitrine.get("description", ""),
+        "collector_name": vitrine.get("user_name", "Collectionneur"),
+        "cards": cards,
+        "stats": {
+            "total_cards": total_cards,
+            "total_value": round(total_value, 2),
+            "unique_pokemon": len(set(c["pokemon_name"] for c in cards)),
+            "type_distribution": type_counts,
+            "set_distribution": dict(sorted(set_counts.items(), key=lambda x: x[1], reverse=True))
+        }
+    }
 
 # ============ HEALTH CHECK ============
 @app.get("/api/health")

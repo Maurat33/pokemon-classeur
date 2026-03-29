@@ -4,7 +4,8 @@ import {
   Search, Plus, BarChart3, Share2, Download, LogOut, Camera, 
   X, Trash2, Edit3, ChevronDown, TrendingUp, Award, 
   Package, Zap, FileSpreadsheet, FileText, ExternalLink, Copy,
-  CheckCircle, AlertCircle, Sun, Moon, Gamepad2, Star
+  CheckCircle, AlertCircle, Sun, Moon, Gamepad2, Star,
+  FolderPlus, Folder, Eye, Flame, Droplets, Leaf, Wind
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -52,18 +53,29 @@ export default function Dashboard() {
 
   const [childProfile, setChildProfile] = useState(null);
   const [showAvatarModal, setShowAvatarModal] = useState(false);
+  const [binders, setBinders] = useState([]);
+  const [selectedBinder, setSelectedBinder] = useState(null);
+  const [showBinderModal, setShowBinderModal] = useState(false);
+  const [cardsBySet, setCardsBySet] = useState([]);
+  const [filterType, setFilterType] = useState('');
+  const [showVitrineModal, setShowVitrineModal] = useState(false);
+  const [vitrineLink, setVitrineLink] = useState('');
 
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const [cardsRes, statsRes, topRes] = await Promise.all([
+      const [cardsRes, statsRes, topRes, bindersRes, setsRes] = await Promise.all([
         api.getCards(),
         api.getStats(),
-        api.getTopCards(5)
+        api.getTopCards(5),
+        api.getBinders(),
+        api.getCardsBySet()
       ]);
       setCards(cardsRes.cards || []);
       setStats(statsRes);
       setTopCards(topRes.cards || []);
+      setBinders(bindersRes.binders || []);
+      setCardsBySet(setsRes.sets || []);
       
       // Load child profile if child
       if (user?.role === 'child') {
@@ -130,17 +142,34 @@ export default function Dashboard() {
     }
   };
 
+  const handleCreateVitrine = async () => {
+    try {
+      const { token } = await api.createVitrine('Ma Collection Pokémon', 'Bienvenue dans ma vitrine !');
+      const link = `${window.location.origin}/vitrine/${token}`;
+      setVitrineLink(link);
+      setShowVitrineModal(true);
+    } catch (err) {
+      showToast('Erreur lors de la création de la vitrine', 'error');
+    }
+  };
+
+  // Get unique types from cards
+  const allTypes = [...new Set(cards.flatMap(c => c.types || []))].sort();
+
   // Filter and sort cards
   const filteredCards = cards
     .filter(card => {
       const matchesSearch = card.pokemon_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                            card.card_name.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCondition = !filterCondition || card.condition === filterCondition;
-      return matchesSearch && matchesCondition;
+      const matchesBinder = !selectedBinder || card.binder_id === selectedBinder;
+      const matchesType = !filterType || (card.types && card.types.includes(filterType));
+      return matchesSearch && matchesCondition && matchesBinder && matchesType;
     })
     .sort((a, b) => {
       if (sortBy === 'name') return a.pokemon_name.localeCompare(b.pokemon_name);
       if (sortBy === 'price') return b.price - a.price;
+      if (sortBy === 'set') return (a.set_name || '').localeCompare(b.set_name || '');
       return new Date(b.created_at) - new Date(a.created_at);
     });
 
@@ -280,6 +309,27 @@ export default function Dashboard() {
         >
           📖 {isChild ? 'Mes Cartes' : 'Mon Classeur'}
         </button>
+
+        <button
+          onClick={() => setActiveTab('sets')}
+          className={`btn-pokemon ${activeTab === 'sets' ? '' : 'btn-pokemon-outline'}`}
+          style={{ fontFamily: "'Fredoka One', cursive" }}
+          data-testid="nav-sets"
+        >
+          📦 Extensions
+        </button>
+
+        {!isChild && (
+          <button
+            onClick={() => setActiveTab('binders')}
+            className={`btn-pokemon ${activeTab === 'binders' ? '' : 'btn-pokemon-outline'}`}
+            style={{ fontFamily: "'Fredoka One', cursive" }}
+            data-testid="nav-binders"
+          >
+            📂 Classeurs
+          </button>
+        )}
+
         <button
           onClick={() => setActiveTab('stats')}
           className={`btn-pokemon ${activeTab === 'stats' ? '' : 'btn-pokemon-outline'}`}
@@ -290,9 +340,17 @@ export default function Dashboard() {
         </button>
       </nav>
 
-      {/* Action buttons - only for adults */}
+      {/* Action buttons */}
       {!isChild ? (
-        <div className="flex justify-center gap-3 mb-6 px-4">
+        <div className="flex flex-wrap justify-center gap-3 mb-6 px-4">
+          <button
+            onClick={handleCreateVitrine}
+            className="btn-pokemon btn-pokemon-outline text-sm py-2 px-4"
+            data-testid="vitrine-btn"
+          >
+            <Eye size={16} className="inline mr-2" />
+            Vitrine
+          </button>
           <button
             onClick={handleShare}
             className="btn-pokemon btn-pokemon-outline text-sm py-2 px-4"
@@ -328,22 +386,24 @@ export default function Dashboard() {
           </div>
           <button
             onClick={logout}
-            className="btn-pokemon btn-pokemon-outline text-sm py-2 px-4"
+            className="btn-pokemon text-sm py-2 px-4"
+            style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)' }}
             data-testid="logout-btn"
           >
             <LogOut size={16} className="inline mr-2" />
-            {user?.name}
+            Déconnexion
           </button>
         </div>
       ) : (
         <div className="flex justify-center mb-6 px-4">
           <button
             onClick={logout}
-            className="btn-pokemon btn-pokemon-outline text-sm py-2 px-4"
+            className="btn-pokemon text-sm py-2 px-4"
+            style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)' }}
             data-testid="logout-btn"
           >
             <LogOut size={16} className="inline mr-2" />
-            Quitter
+            Déconnexion
           </button>
         </div>
       )}
@@ -363,9 +423,37 @@ export default function Dashboard() {
             onCardClick={setShowDetailModal}
             onAddClick={() => setShowAddModal(true)}
             isChild={isChild}
+            filterType={filterType}
+            setFilterType={setFilterType}
+            allTypes={allTypes}
+            binders={binders}
+            selectedBinder={selectedBinder}
+            setSelectedBinder={setSelectedBinder}
           />
         )}
         
+        {activeTab === 'sets' && (
+          <SetsView sets={cardsBySet} />
+        )}
+
+        {activeTab === 'binders' && !isChild && (
+          <BindersView 
+            binders={binders} 
+            cards={cards}
+            onCreateBinder={() => setShowBinderModal(true)}
+            onSelectBinder={(id) => { setSelectedBinder(id); setActiveTab('collection'); }}
+            onDeleteBinder={async (id) => {
+              try {
+                await api.deleteBinder(id);
+                showToast('Classeur supprimé !');
+                loadData();
+              } catch (err) {
+                showToast('Erreur', 'error');
+              }
+            }}
+          />
+        )}
+
         {activeTab === 'stats' && (
           <StatsView stats={stats} topCards={topCards} />
         )}
@@ -419,6 +507,29 @@ export default function Dashboard() {
             }}
           />
         )}
+
+        {showBinderModal && (
+          <BinderCreateModal
+            onClose={() => setShowBinderModal(false)}
+            onSuccess={async (data) => {
+              try {
+                await api.createBinder(data);
+                showToast('Classeur créé ! 📂');
+                setShowBinderModal(false);
+                loadData();
+              } catch (err) {
+                showToast('Erreur', 'error');
+              }
+            }}
+          />
+        )}
+
+        {showVitrineModal && (
+          <VitrineModal
+            link={vitrineLink}
+            onClose={() => setShowVitrineModal(false)}
+          />
+        )}
       </AnimatePresence>
 
       {/* Toast */}
@@ -461,10 +572,300 @@ function StatChip({ icon, label, value, highlight, isDark = true }) {
   );
 }
 
+// Pokemon type colors, icons and French labels
+const TYPE_COLORS = {
+  Fire: 'bg-orange-500', Water: 'bg-blue-500', Grass: 'bg-green-500',
+  Lightning: 'bg-yellow-500', Psychic: 'bg-purple-500', Fighting: 'bg-red-700',
+  Darkness: 'bg-gray-800', Metal: 'bg-gray-500', Dragon: 'bg-indigo-600',
+  Fairy: 'bg-pink-400', Colorless: 'bg-gray-400',
+};
+
+const TYPE_ICONS = {
+  Fire: '🔥', Water: '💧', Grass: '🌿', Lightning: '⚡', Psychic: '🔮',
+  Fighting: '👊', Darkness: '🌑', Metal: '⚙️', Dragon: '🐉',
+  Fairy: '✨', Colorless: '⭐',
+};
+
+const TYPE_LABELS_FR = {
+  Fire: 'Feu', Water: 'Eau', Grass: 'Plante', Lightning: 'Électrique',
+  Psychic: 'Psy', Fighting: 'Combat', Darkness: 'Ténèbres', Metal: 'Métal',
+  Dragon: 'Dragon', Fairy: 'Fée', Colorless: 'Incolore',
+};
+
+function SetsView({ sets }) {
+  return (
+    <div className="card-pokemon p-6">
+      <h2 
+        className="text-2xl font-bold mb-6 holographic-text"
+        style={{ fontFamily: "'Fredoka One', cursive" }}
+      >
+        📦 Mes Extensions
+      </h2>
+      {sets.length === 0 ? (
+        <p className="text-center text-gray-500 py-8">Aucune carte dans ta collection</p>
+      ) : (
+        <div className="space-y-4">
+          {sets.map((set, index) => (
+            <motion.div
+              key={set.set_name}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: index * 0.05 }}
+              className="bg-white/5 border border-white/10 rounded-2xl p-4 hover:border-cyan-500/30 transition-colors"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center text-lg font-bold text-white"
+                    style={{ fontFamily: "'Fredoka One', cursive" }}
+                  >
+                    {set.count}
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-adaptive">{set.set_name}</h3>
+                    <p className="text-xs text-muted-adaptive">{set.count} carte{set.count > 1 ? 's' : ''} • {set.total_value.toFixed(2)}€</p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                {set.cards.slice(0, 8).map((card, i) => (
+                  <img
+                    key={i}
+                    src={card.image_url}
+                    alt={card.pokemon_name}
+                    className="w-16 h-22 rounded-lg border border-white/10 object-contain flex-shrink-0"
+                    loading="lazy"
+                  />
+                ))}
+                {set.cards.length > 8 && (
+                  <div className="w-16 h-22 rounded-lg border border-white/10 flex items-center justify-center text-sm font-bold text-gray-400 flex-shrink-0">
+                    +{set.cards.length - 8}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BindersView({ binders, cards, onCreateBinder, onSelectBinder, onDeleteBinder }) {
+  const getBinderCardCount = (binderId) => cards.filter(c => c.binder_id === binderId).length;
+  const getBinderValue = (binderId) => cards.filter(c => c.binder_id === binderId).reduce((sum, c) => sum + c.price * c.quantity, 0);
+  const unassignedCount = cards.filter(c => !c.binder_id).length;
+
+  return (
+    <div className="card-pokemon p-6">
+      <div className="flex items-center justify-between mb-6">
+        <h2 
+          className="text-2xl font-bold holographic-text"
+          style={{ fontFamily: "'Fredoka One', cursive" }}
+        >
+          📂 Mes Classeurs
+        </h2>
+        <button
+          onClick={onCreateBinder}
+          className="btn-pokemon btn-pokemon-gold text-sm"
+          style={{ fontFamily: "'Fredoka One', cursive" }}
+          data-testid="create-binder-btn"
+        >
+          <FolderPlus size={16} className="inline mr-2" />
+          Nouveau
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Unassigned cards */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          onClick={() => onSelectBinder(null)}
+          className="cursor-pointer bg-white/5 border border-white/10 rounded-2xl p-5 hover:border-cyan-500/30 transition-all hover:scale-[1.02]"
+          data-testid="binder-unassigned"
+        >
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-gray-500 to-gray-700 flex items-center justify-center text-2xl mb-3 shadow-lg">
+            📋
+          </div>
+          <h3 className="font-bold text-adaptive text-lg" style={{ fontFamily: "'Fredoka One', cursive" }}>Non classées</h3>
+          <p className="text-sm text-muted-adaptive">{unassignedCount} carte{unassignedCount > 1 ? 's' : ''}</p>
+        </motion.div>
+
+        {binders.map((binder, index) => {
+          const count = getBinderCardCount(binder._id);
+          const value = getBinderValue(binder._id);
+          return (
+            <motion.div
+              key={binder._id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: (index + 1) * 0.05 }}
+              className="relative cursor-pointer bg-white/5 border border-white/10 rounded-2xl p-5 hover:border-yellow-500/30 transition-all hover:scale-[1.02] group"
+              data-testid={`binder-${binder._id}`}
+            >
+              <button
+                onClick={(e) => { e.stopPropagation(); onDeleteBinder(binder._id); }}
+                className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity text-red-400 hover:text-red-300"
+                data-testid={`delete-binder-${binder._id}`}
+              >
+                <Trash2 size={16} />
+              </button>
+              <div 
+                onClick={() => onSelectBinder(binder._id)}
+                className="w-14 h-14 rounded-2xl bg-gradient-to-br flex items-center justify-center text-2xl mb-3 shadow-lg"
+                style={{ backgroundImage: `linear-gradient(135deg, var(--tw-gradient-from), var(--tw-gradient-to))` }}
+              >
+                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${binder.color} flex items-center justify-center text-2xl shadow-lg`}>
+                  📂
+                </div>
+              </div>
+              <div onClick={() => onSelectBinder(binder._id)}>
+                <h3 className="font-bold text-adaptive text-lg" style={{ fontFamily: "'Fredoka One', cursive" }}>{binder.name}</h3>
+                {binder.description && <p className="text-xs text-muted-adaptive mb-1">{binder.description}</p>}
+                <p className="text-sm text-muted-adaptive">{count} carte{count > 1 ? 's' : ''} • {value.toFixed(2)}€</p>
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function BinderCreateModal({ onClose, onSuccess }) {
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [color, setColor] = useState('from-purple-500 to-pink-500');
+
+  const colorOptions = [
+    'from-purple-500 to-pink-500',
+    'from-blue-500 to-cyan-500',
+    'from-orange-500 to-yellow-500',
+    'from-green-500 to-emerald-500',
+    'from-red-500 to-pink-500',
+    'from-indigo-500 to-purple-500',
+  ];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        className="card-pokemon p-6 w-full max-w-sm"
+      >
+        <h2 className="text-2xl font-bold mb-4 holographic-text" style={{ fontFamily: "'Fredoka One', cursive" }}
+          data-testid="binder-modal-title"
+        >
+          📂 Nouveau Classeur
+        </h2>
+        <div className="space-y-4">
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Nom du classeur..."
+            className="w-full input-pokemon"
+            maxLength={50}
+            data-testid="binder-name-input"
+          />
+          <input
+            type="text"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Description (optionnel)..."
+            className="w-full input-pokemon"
+            data-testid="binder-desc-input"
+          />
+          <div>
+            <label className="text-xs font-bold text-gray-400 mb-2 block">Couleur</label>
+            <div className="flex gap-2">
+              {colorOptions.map(c => (
+                <button
+                  key={c}
+                  onClick={() => setColor(c)}
+                  className={`w-8 h-8 rounded-full bg-gradient-to-br ${c} ${color === c ? 'ring-2 ring-white ring-offset-2 ring-offset-black' : ''}`}
+                />
+              ))}
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={() => name.trim() && onSuccess({ name: name.trim(), description, color })}
+              disabled={!name.trim()}
+              className="flex-1 btn-pokemon btn-pokemon-gold disabled:opacity-50"
+              style={{ fontFamily: "'Fredoka One', cursive" }}
+              data-testid="binder-create-submit"
+            >
+              Créer
+            </button>
+            <button onClick={onClose} className="flex-1 btn-pokemon btn-pokemon-outline">
+              Annuler
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function VitrineModal({ link, onClose }) {
+  const copyLink = () => {
+    navigator.clipboard.writeText(link);
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        className="card-pokemon p-6 w-full max-w-md text-center"
+      >
+        <div className="text-5xl mb-4">🏛️</div>
+        <h2 className="text-2xl font-bold mb-2 holographic-text" style={{ fontFamily: "'Fredoka One', cursive" }}
+          data-testid="vitrine-modal-title"
+        >
+          Ma Vitrine
+        </h2>
+        <p className="text-gray-400 mb-6">Partage ta vitrine avec le monde !</p>
+        <div className="flex gap-2 mb-6">
+          <input type="text" value={link} readOnly className="flex-1 input-pokemon text-sm" data-testid="vitrine-link-input" />
+          <button onClick={copyLink} className="btn-pokemon" style={{ fontFamily: "'Fredoka One', cursive" }} data-testid="copy-vitrine-link">
+            📋 Copier
+          </button>
+        </div>
+        <button
+          onClick={() => window.open(link, '_blank')}
+          className="w-full btn-pokemon btn-pokemon-outline flex items-center justify-center gap-2"
+          data-testid="open-vitrine-btn"
+        >
+          <ExternalLink size={18} />
+          Voir ma vitrine
+        </button>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 function CollectionView({ 
   cards, loading, searchQuery, setSearchQuery, 
   filterCondition, setFilterCondition, sortBy, setSortBy,
-  onCardClick, onAddClick, isChild = false 
+  onCardClick, onAddClick, isChild = false,
+  filterType, setFilterType, allTypes = [],
+  binders = [], selectedBinder, setSelectedBinder
 }) {
   return (
     <div className="card-pokemon p-6">
@@ -476,7 +877,7 @@ function CollectionView({
       </h2>
       
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 mb-6">
+      <div className="flex flex-wrap gap-3 mb-4">
         <div className="flex-1 min-w-[200px]">
           <input
             type="text"
@@ -500,12 +901,77 @@ function CollectionView({
           💰 Prix
         </button>
         <button
+          onClick={() => setSortBy('set')}
+          className={`btn-pokemon text-sm py-2 px-4 ${sortBy === 'set' ? '' : 'btn-pokemon-outline'}`}
+        >
+          📦 Extension
+        </button>
+        <button
           onClick={() => setSortBy('date')}
           className={`btn-pokemon text-sm py-2 px-4 ${sortBy === 'date' ? '' : 'btn-pokemon-outline'}`}
         >
           🕐 Récent
         </button>
       </div>
+
+      {/* Type filters */}
+      {allTypes.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-4">
+          <button
+            onClick={() => setFilterType('')}
+            className={`text-xs font-bold px-3 py-1.5 rounded-full transition-all ${
+              !filterType ? 'bg-white/20 text-white' : 'bg-white/5 text-gray-400 hover:bg-white/10'
+            }`}
+            data-testid="filter-type-all"
+          >
+            Tous
+          </button>
+          {allTypes.map(type => (
+            <button
+              key={type}
+              onClick={() => setFilterType(filterType === type ? '' : type)}
+              className={`text-xs font-bold px-3 py-1.5 rounded-full transition-all flex items-center gap-1 ${
+                filterType === type 
+                  ? `${TYPE_COLORS[type] || 'bg-gray-500'} text-white shadow-lg` 
+                  : 'bg-white/5 text-gray-400 hover:bg-white/10'
+              }`}
+              data-testid={`filter-type-${type.toLowerCase()}`}
+            >
+              <span>{TYPE_ICONS[type] || '⚪'}</span>
+              {TYPE_LABELS_FR[type] || type}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Binder filter */}
+      {!isChild && binders.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-4">
+          <button
+            onClick={() => setSelectedBinder(null)}
+            className={`text-xs font-bold px-3 py-1.5 rounded-full transition-all flex items-center gap-1 ${
+              !selectedBinder ? 'bg-white/20 text-white' : 'bg-white/5 text-gray-400 hover:bg-white/10'
+            }`}
+            data-testid="filter-binder-all"
+          >
+            <Folder size={12} /> Tous les classeurs
+          </button>
+          {binders.map(b => (
+            <button
+              key={b._id}
+              onClick={() => setSelectedBinder(selectedBinder === b._id ? null : b._id)}
+              className={`text-xs font-bold px-3 py-1.5 rounded-full transition-all flex items-center gap-1 ${
+                selectedBinder === b._id 
+                  ? 'bg-yellow-500/30 text-yellow-400 border border-yellow-500/50' 
+                  : 'bg-white/5 text-gray-400 hover:bg-white/10'
+              }`}
+              data-testid={`filter-binder-${b._id}`}
+            >
+              <Folder size={12} /> {b.name}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Cards Grid */}
       {loading ? (
@@ -777,7 +1243,8 @@ function AddCardModal({ onClose, onSuccess }) {
         condition: formData.condition,
         quantity: parseInt(formData.quantity) || 1,
         tcg_id: selectedCard.id,
-        rarity: selectedCard.rarity
+        rarity: selectedCard.rarity,
+        types: selectedCard.types || []
       });
       onSuccess();
     } catch (err) {
