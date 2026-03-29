@@ -835,19 +835,24 @@ If you cannot identify something with certainty, provide your best guess. NEVER 
                 resp = await client.get(f"{TCGDEX_API}/fr/cards", params={"name": search_fr}, timeout=10.0)
                 if resp.status_code == 200:
                     fr_cards = resp.json()
-                    if isinstance(fr_cards, list):
-                        for card_brief in fr_cards[:10]:
+                    if isinstance(fr_cards, list) and len(fr_cards) > 0:
+                        # Pre-filter by card number using the card ID (format: setId-number)
+                        candidates = fr_cards
+                        if card_number and "/" in card_number:
+                            expected_num = card_number.split("/")[0].lstrip("0")
+                            # Filter cards whose ID ends with the matching number
+                            number_matches = [c for c in fr_cards if c.get("id", "").split("-")[-1].lstrip("0") == expected_num]
+                            if number_matches:
+                                candidates = number_matches
+                        
+                        # Fetch details for candidates (limit to 5 for performance)
+                        for card_brief in candidates[:5]:
                             try:
                                 detail_resp = await client.get(f"{TCGDEX_API}/fr/cards/{card_brief['id']}", timeout=5.0)
                                 if detail_resp.status_code == 200:
                                     card = detail_resp.json()
                                     img_base = card.get("image", "")
-                                    # Check if number matches for exact match
                                     local_id = card.get("localId", "")
-                                    if card_number and "/" in card_number:
-                                        expected_num = card_number.split("/")[0]
-                                        if local_id != expected_num:
-                                            continue
                                     tcg_matches.append({
                                         "id": card.get("id", ""),
                                         "name": card.get("name", ""),
