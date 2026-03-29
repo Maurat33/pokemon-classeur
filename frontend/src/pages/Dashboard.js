@@ -191,8 +191,8 @@ export default function Dashboard() {
         )}
         
         <div className="max-w-6xl mx-auto relative z-10">
-          {/* Theme toggle */}
-          <div className="absolute right-0 top-0">
+          {/* Theme toggle + Logout */}
+          <div className="absolute right-0 top-0 flex items-center gap-2">
             <button
               onClick={toggleTheme}
               className={`flex items-center gap-2 px-3 py-2 rounded-full transition-all ${
@@ -206,6 +206,18 @@ export default function Dashboard() {
               <span className="text-sm font-semibold hidden sm:inline">
                 {isDark ? 'Clair' : 'Sombre'}
               </span>
+            </button>
+            <button
+              onClick={logout}
+              className={`p-2 rounded-full transition-all ${
+                isDark
+                  ? 'bg-white/10 hover:bg-red-500/30 text-white hover:text-red-400'
+                  : 'bg-white/30 hover:bg-red-500/30 text-gray-800 hover:text-red-600'
+              }`}
+              title="Déconnexion"
+              data-testid="logout-btn"
+            >
+              <LogOut size={18} />
             </button>
           </div>
           
@@ -384,29 +396,8 @@ export default function Dashboard() {
               </button>
             </div>
           </div>
-          <button
-            onClick={logout}
-            className="btn-pokemon text-sm py-2 px-4"
-            style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)' }}
-            data-testid="logout-btn"
-          >
-            <LogOut size={16} className="inline mr-2" />
-            Déconnexion
-          </button>
         </div>
-      ) : (
-        <div className="flex justify-center mb-6 px-4">
-          <button
-            onClick={logout}
-            className="btn-pokemon text-sm py-2 px-4"
-            style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)' }}
-            data-testid="logout-btn"
-          >
-            <LogOut size={16} className="inline mr-2" />
-            Déconnexion
-          </button>
-        </div>
-      )}
+      ) : null}
 
       {/* Main Content */}
       <main className="max-w-6xl mx-auto px-4 pb-8">
