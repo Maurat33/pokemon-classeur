@@ -71,6 +71,17 @@ export const getSharedCollection = async (token) => {
 export const exportPDF = () => `${API_URL}/api/export/pdf`;
 export const exportExcel = () => `${API_URL}/api/export/excel`;
 
+// Forgot / Reset password
+export const forgotPassword = async (email) => {
+  const { data } = await api.post('/api/auth/forgot-password', { email });
+  return data;
+};
+
+export const resetPassword = async (email, code, new_password) => {
+  const { data } = await api.post('/api/auth/reset-password', { email, code, new_password });
+  return data;
+};
+
 // Profile
 export const getProfile = async () => {
   const { data } = await api.get('/api/user/profile');
@@ -82,7 +93,7 @@ export const updateAvatar = async (avatarBase64) => {
   return data;
 };
 
-export const updateChildAvatar = async (avatarBase64, childEmail = 'leo@pokemon.com') => {
+export const updateChildAvatar = async (avatarBase64, childEmail = 'maurat.leo@gmail.com') => {
   const { data } = await api.post('/api/user/child-avatar', { avatar: avatarBase64, child_email: childEmail });
   return data;
 };

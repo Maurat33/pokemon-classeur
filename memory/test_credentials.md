@@ -7,10 +7,10 @@
 - Permissions: Full access (add, edit, delete cards)
 
 ## Child User (Léo)
-- Email: leo@pokemon.com
-- Password: Pokemon123
+- Email: maurat.leo@gmail.com
+- Password: Facile33
 - Role: child
-- Permissions: View cards, play games (cannot delete or edit prices)
+- Permissions: View cards, add cards, play games
 
 ## Auth Endpoints
 - POST /api/auth/register
@@ -18,3 +18,5 @@
 - POST /api/auth/logout
 - GET /api/auth/me
 - POST /api/auth/refresh
+- POST /api/auth/forgot-password
+- POST /api/auth/reset-password

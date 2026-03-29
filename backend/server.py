@@ -139,23 +139,32 @@ async def seed_admin():
         )
     
     # Seed child account for Léo
-    child_email = "leo@pokemon.com"
-    child_password = "Pokemon123"
+    child_email = "maurat.leo@gmail.com"
+    child_password = "Facile33"
     existing_child = await db.users.find_one({"email": child_email})
     if existing_child is None:
-        hashed = hash_password(child_password)
-        await db.users.insert_one({
-            "email": child_email,
-            "password_hash": hashed,
-            "name": "Léo",
-            "role": "child",
-            "stars": 0,
-            "badges": [],
-            "games_played": 0,
-            "high_scores": {"memory": 0, "quiz": 0, "catch": 0},
-            "created_at": datetime.now(timezone.utc)
-        })
-        print(f"Child user created: {child_email}")
+        # Check if old email exists and migrate
+        old_child = await db.users.find_one({"email": "leo@pokemon.com"})
+        if old_child:
+            await db.users.update_one(
+                {"email": "leo@pokemon.com"},
+                {"$set": {"email": child_email, "password_hash": hash_password(child_password)}}
+            )
+            print(f"Child user migrated to: {child_email}")
+        else:
+            hashed = hash_password(child_password)
+            await db.users.insert_one({
+                "email": child_email,
+                "password_hash": hashed,
+                "name": "Léo",
+                "role": "child",
+                "stars": 0,
+                "badges": [],
+                "games_played": 0,
+                "high_scores": {"memory": 0, "quiz": 0, "catch": 0},
+                "created_at": datetime.now(timezone.utc)
+            })
+            print(f"Child user created: {child_email}")
     elif not verify_password(child_password, existing_child["password_hash"]):
         await db.users.update_one(
             {"email": child_email},
@@ -174,8 +183,8 @@ async def seed_admin():
 - Permissions: Full access (add, edit, delete cards)
 
 ## Child User (Léo)
-- Email: leo@pokemon.com
-- Password: Pokemon123
+- Email: maurat.leo@gmail.com
+- Password: Facile33
 - Role: child
 - Permissions: View cards, play games (cannot delete or edit prices)
 
@@ -318,6 +327,56 @@ async def refresh_token(request: Request, response: Response):
         raise HTTPException(status_code=401, detail="Refresh token expired")
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+# Store reset codes in memory (simple approach)
+reset_codes = {}
+
+@app.post("/api/auth/forgot-password")
+async def forgot_password(request: Request):
+    data = await request.json()
+    email = data.get("email", "").strip().lower()
+    
+    user = await db.users.find_one({"email": email})
+    if not user:
+        # Don't reveal if email exists - just say "sent"
+        return {"message": "Si ce compte existe, un code a été envoyé."}
+    
+    # Generate 6-digit code
+    code = f"{secrets.randbelow(900000) + 100000}"
+    reset_codes[email] = {"code": code, "expires": datetime.now(timezone.utc).timestamp() + 600}  # 10 min
+    
+    print(f"[RESET] Code for {email}: {code}")
+    
+    return {"message": "Si ce compte existe, un code a été envoyé.", "hint": code}
+
+@app.post("/api/auth/reset-password")
+async def reset_password(request: Request):
+    data = await request.json()
+    email = data.get("email", "").strip().lower()
+    code = data.get("code", "").strip()
+    new_password = data.get("new_password", "")
+    
+    if len(new_password) < 6:
+        raise HTTPException(status_code=400, detail="Le mot de passe doit faire au moins 6 caractères")
+    
+    stored = reset_codes.get(email)
+    if not stored:
+        raise HTTPException(status_code=400, detail="Aucune demande de réinitialisation trouvée")
+    
+    if datetime.now(timezone.utc).timestamp() > stored["expires"]:
+        del reset_codes[email]
+        raise HTTPException(status_code=400, detail="Le code a expiré")
+    
+    if stored["code"] != code:
+        raise HTTPException(status_code=400, detail="Code incorrect")
+    
+    await db.users.update_one(
+        {"email": email},
+        {"$set": {"password_hash": hash_password(new_password)}}
+    )
+    
+    del reset_codes[email]
+    return {"message": "Mot de passe mis à jour avec succès !"}
 
 # ============ FRENCH TO ENGLISH POKEMON NAMES ============
 POKEMON_FR_TO_EN = {
@@ -1189,7 +1248,7 @@ async def update_child_avatar(request: Request):
         raise HTTPException(status_code=403, detail="Only admin can update child avatar")
     
     data = await request.json()
-    child_email = data.get("child_email", "leo@pokemon.com")
+    child_email = data.get("child_email", "maurat.leo@gmail.com")
     avatar = data.get("avatar")
     
     if not avatar:
