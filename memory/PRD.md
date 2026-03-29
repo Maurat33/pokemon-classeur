@@ -49,6 +49,12 @@ Transformer un classeur Pokemon HTML simple en une application full-stack modern
 - Bouton Deconnexion rouge visible sur tous les comptes
 - Filtre par classeur dans la collection
 
+### Phase 5 - Detail carte enrichi (DONE - 29 Mars 2026)
+- Assigner une carte a un classeur depuis le modal de detail
+- Graphique d'historique des prix (barres interactives avec hover)
+- Retirer une carte d'un classeur (binder_id = null)
+- Badges de types Pokemon dans le modal de detail
+
 ## Key API Endpoints
 - POST/GET /api/auth/* - Auth
 - GET/POST/PUT/DELETE /api/cards - CRUD cartes
@@ -76,8 +82,8 @@ Transformer un classeur Pokemon HTML simple en une application full-stack modern
 - Auth, CRUD, TCG API, AI, Export, Share, Child mode, Binders, Sets, Types, Vitrine
 
 ### P1 (High) - Future
-- [ ] Historique des prix par carte (graphiques)
-- [ ] Assigner des cartes aux classeurs (drag & drop ou menu)
+- [ ] Drag & Drop pour deplacer les cartes entre classeurs visuellement
+- [ ] Historique des prix plus detaille (avec dates differentes)
 
 ### P2 (Medium) - Future
 - [ ] Notifications de changement de prix

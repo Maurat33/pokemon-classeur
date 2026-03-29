@@ -515,7 +515,7 @@ async def create_card(data: CardCreate, request: Request):
     return card_doc
 
 @app.put("/api/cards/{card_id}")
-async def update_card(card_id: str, data: CardUpdate, request: Request):
+async def update_card(card_id: str, request: Request):
     user = await get_current_user(request)
     
     # Children cannot update cards
@@ -526,17 +526,18 @@ async def update_card(card_id: str, data: CardUpdate, request: Request):
     if not card:
         raise HTTPException(status_code=404, detail="Card not found")
     
+    raw_data = await request.json()
     update_data = {}
-    if data.price is not None:
-        update_data["price"] = data.price
-        # Add to price history
-        update_data["$push"] = {"price_history": {"price": data.price, "date": datetime.now(timezone.utc).isoformat()}}
-    if data.condition is not None:
-        update_data["condition"] = data.condition
-    if data.quantity is not None:
-        update_data["quantity"] = data.quantity
-    if data.binder_id is not None:
-        update_data["binder_id"] = data.binder_id
+    
+    if "price" in raw_data and raw_data["price"] is not None:
+        update_data["price"] = float(raw_data["price"])
+        update_data["$push"] = {"price_history": {"price": float(raw_data["price"]), "date": datetime.now(timezone.utc).isoformat()}}
+    if "condition" in raw_data and raw_data["condition"] is not None:
+        update_data["condition"] = raw_data["condition"]
+    if "quantity" in raw_data and raw_data["quantity"] is not None:
+        update_data["quantity"] = int(raw_data["quantity"])
+    if "binder_id" in raw_data:
+        update_data["binder_id"] = raw_data["binder_id"]  # Can be None to remove from binder
     
     if "$push" in update_data:
         push_data = update_data.pop("$push")
