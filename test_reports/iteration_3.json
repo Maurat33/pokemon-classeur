@@ -1,0 +1,108 @@
+{
+  "summary": "Completed testing of Card Detail Modal enhancements (binder selector and price history chart). Backend: 9/10 tests passed. Frontend: All features working correctly. Found 1 backend bug: Cannot remove card from binder (setting binder_id to null doesn't work).",
+  
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "PUT /api/cards/:id",
+        "issue": "Cannot set binder_id to null to remove card from binder. When sending binder_id: null, the backend doesn't update the field because Pydantic converts null to None (the default value), and the check 'if data.binder_id is not None' fails.",
+        "priority": "MEDIUM",
+        "fix_suggestion": "Use a sentinel value or check if 'binder_id' key exists in the raw request body to distinguish between 'not provided' and 'explicitly set to null'"
+      }
+    ]
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "passed_tests": [
+    "Backend: PUT /api/cards/:id with binder_id updates card's binder",
+    "Backend: Child cannot update card binder (403)",
+    "Backend: PUT /api/cards/:id with price adds to price_history",
+    "Backend: Trevenant has multiple price history entries (6 entries)",
+    "Backend: Porygon2 has single price history entry",
+    "Backend: GET /api/cards includes price_history field",
+    "Backend: GET /api/cards includes binder_id field",
+    "Backend: PUT /api/cards/:id with condition updates correctly",
+    "Backend: PUT /api/cards/:id with quantity updates correctly",
+    "Frontend: Admin login shows dashboard with cards",
+    "Frontend: Card detail modal shows binder selector (CLASSEUR dropdown) for admin",
+    "Frontend: Binder selector shows 'Aucun classeur' + all binders as options",
+    "Frontend: Admin can change binder assignment from card detail modal",
+    "Frontend: Toast message 'Classeur mis à jour !' appears after binder change",
+    "Frontend: Card detail modal shows price history chart for Trevenant (4+ entries)",
+    "Frontend: Price history chart displays bars with dates (hover shows price and date)",
+    "Frontend: Card detail modal does NOT show price history chart for Porygon2 (1 entry)",
+    "Frontend: Child account card detail does NOT show binder selector",
+    "Frontend: Child account card detail does NOT show delete button",
+    "Frontend: Child account card detail does NOT show edit price button",
+    "Frontend: Child account shows 'Super carte !' button instead of 'Fermer'",
+    "Frontend: Classeurs view shows correct card count per binder",
+    "Frontend: Binder filter on collection view works correctly"
+  ],
+
+  "failed_tests": [
+    "Backend: test_remove_card_from_binder - Cannot set binder_id to null"
+  ],
+
+  "test_report_links": [
+    "/app/backend/tests/test_card_detail_features.py",
+    "/app/test_reports/pytest/pytest_card_detail_results.xml"
+  ],
+
+  "action_items": [
+    "Fix PUT /api/cards/:id to properly handle binder_id: null (remove card from binder)"
+  ],
+
+  "critical_code_review_comments": [
+    "Backend CardUpdate model: The Optional[str] = None pattern doesn't distinguish between 'field not provided' and 'field explicitly set to null'. Consider using a sentinel value or checking raw request body."
+  ],
+
+  "updated_files": [
+    "/app/backend/tests/test_card_detail_features.py"
+  ],
+
+  "success_rate": {
+    "backend": "90% - 9/10 tests passed",
+    "frontend": "100% - All features working correctly"
+  },
+
+  "test_credentials": {
+    "admin": "admin@pokemon.com / Admin123!",
+    "child": "leo@pokemon.com / Pokemon123"
+  },
+
+  "seed_data_creation": "None - used existing Trevenant and Porygon2 cards",
+
+  "retest_needed": true,
+
+  "should_main_agent_self_test": true,
+
+  "context_for_next_testing_agent": "Card detail modal features (binder selector, price history chart) are working. Trevenant has 6+ price history entries and is assigned to 'Mes Préférées' binder. Porygon2 has 1 price entry. The only issue is backend cannot handle setting binder_id to null to remove a card from a binder. Frontend correctly sends null but backend ignores it.",
+
+  "features_verified": {
+    "binder_selector_in_modal": "Admin sees CLASSEUR dropdown with 'Aucun classeur' + all binders",
+    "binder_change_from_modal": "Admin can change binder, toast shows 'Classeur mis à jour !'",
+    "price_history_chart": "Shows bar chart when card has >1 price history entries",
+    "price_history_hover": "Hovering on bars shows price and date",
+    "child_restrictions": "Child cannot see binder selector, delete button, or edit price button",
+    "classeurs_view_counts": "Shows correct card count and value per binder"
+  },
+
+  "rca_of_the_issue": {
+    "issue": "Cannot remove card from binder (set binder_id to null)",
+    "root_cause": "In server.py line 538, the check 'if data.binder_id is not None' fails when binder_id is explicitly set to null because Pydantic converts JSON null to Python None, which is the same as the default value",
+    "reproduction_steps": [
+      "1. Login as admin",
+      "2. Open card detail modal for a card assigned to a binder",
+      "3. Change binder selector to 'Aucun classeur'",
+      "4. The frontend sends PUT /api/cards/:id with binder_id: null",
+      "5. Backend receives the request but doesn't update binder_id because the check fails"
+    ],
+    "mitigation": "Fix the backend to use model_fields_set or check raw request body to detect if binder_id was explicitly provided"
+  }
+}
