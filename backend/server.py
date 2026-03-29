@@ -771,6 +771,32 @@ async def get_cards(request: Request):
 @app.post("/api/cards")
 async def create_card(data: CardCreate, request: Request):
     user = await get_current_user(request)
+    
+    # Check for duplicate card
+    duplicate = None
+    if data.tcg_id:
+        duplicate = await db.cards.find_one({"user_id": user["_id"], "tcg_id": data.tcg_id})
+    if not duplicate and data.card_number and data.set_name:
+        duplicate = await db.cards.find_one({
+            "user_id": user["_id"],
+            "set_name": data.set_name,
+            "card_number": data.card_number
+        })
+    
+    if duplicate:
+        # Card already exists — increment quantity
+        new_qty = duplicate.get("quantity", 1) + data.quantity
+        update = {"$set": {"quantity": new_qty}}
+        if data.price and data.price != duplicate.get("price", 0):
+            update["$set"]["price"] = data.price
+            update["$push"] = {"price_history": {"price": data.price, "date": datetime.now(timezone.utc).isoformat()}}
+        
+        await db.cards.update_one({"_id": duplicate["_id"]}, update)
+        duplicate["_id"] = str(duplicate["_id"])
+        duplicate["quantity"] = new_qty
+        duplicate["is_duplicate"] = True
+        return duplicate
+    
     card_doc = {
         "user_id": user["_id"],
         "pokemon_name": data.pokemon_name,
@@ -790,6 +816,7 @@ async def create_card(data: CardCreate, request: Request):
     }
     result = await db.cards.insert_one(card_doc)
     card_doc["_id"] = str(result.inserted_id)
+    card_doc["is_duplicate"] = False
     return card_doc
 
 @app.put("/api/cards/{card_id}")

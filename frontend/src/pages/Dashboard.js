@@ -452,10 +452,14 @@ export default function Dashboard() {
         {showAddModal && (
           <AddCardModal 
             onClose={() => setShowAddModal(false)} 
-            onSuccess={() => {
+            onSuccess={(isDuplicate) => {
               loadData();
               setShowAddModal(false);
-              showToast('Carte ajoutée ! 🎉');
+              if (isDuplicate) {
+                showToast('Carte en double ! Quantité mise à jour 🔄');
+              } else {
+                showToast('Carte ajoutée ! 🎉');
+              }
             }}
           />
         )}
@@ -1269,7 +1273,7 @@ function AddCardModal({ onClose, onSuccess }) {
       // Use uploaded photo if available, otherwise TCG image
       const imageUrl = formData.useOwnPhoto && uploadedImage ? uploadedImage : (selectedCard.image_large || selectedCard.image);
       
-      await api.createCard({
+      const result = await api.createCard({
         pokemon_name: displayName,
         card_name: displayName,
         set_name: selectedCard.set,
@@ -1282,7 +1286,7 @@ function AddCardModal({ onClose, onSuccess }) {
         rarity: selectedCard.rarity,
         types: selectedCard.types || []
       });
-      onSuccess();
+      onSuccess(result.is_duplicate);
     } catch (err) {
       console.error('Create card error:', err);
     } finally {
