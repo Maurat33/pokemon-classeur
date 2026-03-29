@@ -1414,13 +1414,20 @@ function AddCardModal({ onClose, onSuccess }) {
                 <div
                   key={card.id}
                   onClick={() => selectCard(card)}
-                  className={`cursor-pointer rounded-xl overflow-hidden border-2 transition-all hover:scale-105 ${
+                  className={`cursor-pointer rounded-xl overflow-hidden border-2 transition-all hover:scale-105 relative ${
                     selectedCard?.id === card.id 
                       ? 'border-pink-500 shadow-lg shadow-pink-500/30' 
                       : 'border-white/10 hover:border-cyan-400/50'
                   }`}
                   data-testid={`search-result-${card.id}`}
                 >
+                  {card.lang && (
+                    <span className={`absolute top-1 right-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full z-10 ${
+                      card.lang === 'fr' ? 'bg-blue-600 text-white' : 'bg-red-600 text-white'
+                    }`}>
+                      {card.lang === 'fr' ? '🇫🇷' : '🇬🇧'}
+                    </span>
+                  )}
                   <img src={card.image} alt={card.name} className="w-full aspect-[2/3] object-contain bg-black/50" />
                   <div className="p-2 bg-white/5 border-t border-white/5">
                     <p className="text-xs font-bold truncate">{card.name}</p>

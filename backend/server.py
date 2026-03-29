@@ -544,14 +544,58 @@ def translate_pokemon_name(name: str) -> str:
     return original
 
 # ============ POKEMON TCG API ============
+# ============ POKEMON SEARCH (FR + EN) ============
+TCGDEX_API = "https://api.tcgdex.net/v2"
+
 @app.get("/api/pokemon/search")
-async def search_pokemon(q: str, page: int = 1, pageSize: int = 20):
-    # Try French to English translation
-    search_term = translate_pokemon_name(q)
-    
+async def search_pokemon(q: str, page: int = 1, pageSize: int = 20, lang: str = "auto"):
     async with httpx.AsyncClient() as client:
+        results_fr = []
+        results_en = []
+        
+        # 1. Always try TCGdex FR first
         try:
-            # First try: exact name with wildcard
+            resp = await client.get(
+                f"{TCGDEX_API}/fr/cards",
+                params={"name": q},
+                timeout=10.0
+            )
+            if resp.status_code == 200:
+                tcgdex_cards = resp.json()
+                if isinstance(tcgdex_cards, list) and len(tcgdex_cards) > 0:
+                    # Get full details for each card (limited to pageSize)
+                    for card_brief in tcgdex_cards[:pageSize]:
+                        try:
+                            detail_resp = await client.get(
+                                f"{TCGDEX_API}/fr/cards/{card_brief['id']}",
+                                timeout=5.0
+                            )
+                            if detail_resp.status_code == 200:
+                                card = detail_resp.json()
+                                img_base = card.get("image", "")
+                                results_fr.append({
+                                    "id": card.get("id", ""),
+                                    "name": card.get("name", ""),
+                                    "set": card.get("set", {}).get("name", ""),
+                                    "set_id": card.get("set", {}).get("id", ""),
+                                    "set_total": card.get("set", {}).get("cardCount", {}).get("total", 0) if isinstance(card.get("set", {}).get("cardCount"), dict) else 0,
+                                    "number": card.get("localId", ""),
+                                    "rarity": card.get("rarity", ""),
+                                    "types": card.get("types", []),
+                                    "image": f"{img_base}/low.webp" if img_base else None,
+                                    "image_large": f"{img_base}/high.webp" if img_base else None,
+                                    "prices": {},
+                                    "lang": "fr"
+                                })
+                        except:
+                            continue
+        except Exception as e:
+            print(f"TCGdex search error: {e}")
+        
+        # 2. Also search Pokemon TCG API (EN) with translation
+        try:
+            search_term = translate_pokemon_name(q)
+            
             response = await client.get(
                 f"{POKEMON_TCG_API}/cards",
                 params={"q": f"name:{search_term}*", "page": page, "pageSize": pageSize},
@@ -559,7 +603,7 @@ async def search_pokemon(q: str, page: int = 1, pageSize: int = 20):
             )
             data = response.json()
             
-            # If no results and original != translated, also try original
+            # Fallback searches if no results
             if not data.get("data") and search_term.lower() != q.lower().strip():
                 response = await client.get(
                     f"{POKEMON_TCG_API}/cards",
@@ -568,11 +612,9 @@ async def search_pokemon(q: str, page: int = 1, pageSize: int = 20):
                 )
                 data = response.json()
             
-            # If still no results, try without suffix (EX, GX, etc.)
             if not data.get("data"):
                 import re
                 base = re.sub(r'\s*(ex|gx|vmax|vstar|v|tag team|break)\s*$', '', search_term, flags=re.IGNORECASE).strip()
-                # Also strip M / Mega prefix
                 base = re.sub(r'^(M|Mega)\s+', '', base, flags=re.IGNORECASE).strip()
                 if base != search_term:
                     response = await client.get(
@@ -582,9 +624,8 @@ async def search_pokemon(q: str, page: int = 1, pageSize: int = 20):
                     )
                     data = response.json()
             
-            cards = []
             for card in data.get("data", []):
-                cards.append({
+                results_en.append({
                     "id": card.get("id"),
                     "name": card.get("name"),
                     "set": card.get("set", {}).get("name", "Unknown"),
@@ -596,11 +637,14 @@ async def search_pokemon(q: str, page: int = 1, pageSize: int = 20):
                     "image": card.get("images", {}).get("small"),
                     "image_large": card.get("images", {}).get("large"),
                     "prices": card.get("tcgplayer", {}).get("prices", {}),
+                    "lang": "en"
                 })
-            return {"cards": cards, "totalCount": data.get("totalCount", 0)}
         except Exception as e:
             print(f"Pokemon TCG API error: {e}")
-            return {"cards": [], "totalCount": 0}
+        
+        # Combine: FR first, then EN
+        all_cards = results_fr + results_en
+        return {"cards": all_cards[:pageSize*2], "totalCount": len(all_cards)}
 
 @app.get("/api/pokemon/card/{card_id}")
 async def get_pokemon_card(card_id: str):
@@ -684,61 +728,90 @@ If you cannot identify something with certainty, provide your best guess. NEVER 
         
         ai_result = json_module.loads(json_match.group())
         
-        # Now search Pokemon TCG API for exact match
+        # Now search for exact match — FR first (TCGdex), then EN (Pokemon TCG API)
         tcg_matches = []
         async with httpx.AsyncClient() as client:
             en_name = ai_result.get("pokemon_name_en", "")
+            fr_name = ai_result.get("pokemon_name_fr", "")
             suffix = ai_result.get("suffix", "")
             card_number = ai_result.get("card_number", "")
             set_name = ai_result.get("set_name", "")
             
-            # Build precise search query
-            search_name = en_name
-            if suffix:
-                search_name = f"{en_name} {suffix}".strip()
+            # 1. Try TCGdex (French) first
+            try:
+                search_fr = fr_name or en_name
+                resp = await client.get(f"{TCGDEX_API}/fr/cards", params={"name": search_fr}, timeout=10.0)
+                if resp.status_code == 200:
+                    fr_cards = resp.json()
+                    if isinstance(fr_cards, list):
+                        for card_brief in fr_cards[:10]:
+                            try:
+                                detail_resp = await client.get(f"{TCGDEX_API}/fr/cards/{card_brief['id']}", timeout=5.0)
+                                if detail_resp.status_code == 200:
+                                    card = detail_resp.json()
+                                    img_base = card.get("image", "")
+                                    # Check if number matches for exact match
+                                    local_id = card.get("localId", "")
+                                    if card_number and "/" in card_number:
+                                        expected_num = card_number.split("/")[0]
+                                        if local_id != expected_num:
+                                            continue
+                                    tcg_matches.append({
+                                        "id": card.get("id", ""),
+                                        "name": card.get("name", ""),
+                                        "set": card.get("set", {}).get("name", ""),
+                                        "set_id": card.get("set", {}).get("id", ""),
+                                        "number": local_id,
+                                        "rarity": card.get("rarity", ""),
+                                        "types": card.get("types", []),
+                                        "image": f"{img_base}/low.webp" if img_base else None,
+                                        "image_large": f"{img_base}/high.webp" if img_base else None,
+                                        "prices": {},
+                                        "lang": "fr"
+                                    })
+                            except:
+                                continue
+            except Exception as e:
+                print(f"TCGdex scan search error: {e}")
             
-            queries_to_try = []
-            
-            # Most precise: name + number
-            if card_number and "/" in card_number:
-                num = card_number.split("/")[0].lstrip("0")
-                queries_to_try.append(f'name:"{search_name}" number:{num}')
-            
-            # Name + set
-            if set_name:
-                queries_to_try.append(f'name:"{search_name}" set.name:"{set_name}"')
-            
-            # Just the name with suffix
-            queries_to_try.append(f'name:"{search_name}"')
-            
-            # Fallback: base name wildcard
-            queries_to_try.append(f'name:{en_name}*')
-            
-            for q in queries_to_try:
-                try:
-                    resp = await client.get(
-                        f"{POKEMON_TCG_API}/cards",
-                        params={"q": q, "pageSize": 10},
-                        timeout=10.0
-                    )
-                    tcg_data = resp.json()
-                    if tcg_data.get("data"):
-                        for card in tcg_data["data"]:
-                            tcg_matches.append({
-                                "id": card.get("id"),
-                                "name": card.get("name"),
-                                "set": card.get("set", {}).get("name", ""),
-                                "set_id": card.get("set", {}).get("id", ""),
-                                "number": card.get("number"),
-                                "rarity": card.get("rarity"),
-                                "types": card.get("types", []),
-                                "image": card.get("images", {}).get("small"),
-                                "image_large": card.get("images", {}).get("large"),
-                                "prices": card.get("tcgplayer", {}).get("prices", {}),
-                            })
-                        break  # Found results, stop trying
-                except:
-                    continue
+            # If exact FR match found (matched number), skip EN search
+            if not tcg_matches:
+                # 2. Fallback to Pokemon TCG API (English)
+                search_name = en_name
+                if suffix:
+                    search_name = f"{en_name} {suffix}".strip()
+                
+                queries_to_try = []
+                if card_number and "/" in card_number:
+                    num = card_number.split("/")[0].lstrip("0")
+                    queries_to_try.append(f'name:"{search_name}" number:{num}')
+                if set_name:
+                    queries_to_try.append(f'name:"{search_name}" set.name:"{set_name}"')
+                queries_to_try.append(f'name:"{search_name}"')
+                queries_to_try.append(f'name:{en_name}*')
+                
+                for q in queries_to_try:
+                    try:
+                        resp = await client.get(f"{POKEMON_TCG_API}/cards", params={"q": q, "pageSize": 10}, timeout=10.0)
+                        tcg_data = resp.json()
+                        if tcg_data.get("data"):
+                            for card in tcg_data["data"]:
+                                tcg_matches.append({
+                                    "id": card.get("id"),
+                                    "name": card.get("name"),
+                                    "set": card.get("set", {}).get("name", ""),
+                                    "set_id": card.get("set", {}).get("id", ""),
+                                    "number": card.get("number"),
+                                    "rarity": card.get("rarity"),
+                                    "types": card.get("types", []),
+                                    "image": card.get("images", {}).get("small"),
+                                    "image_large": card.get("images", {}).get("large"),
+                                    "prices": card.get("tcgplayer", {}).get("prices", {}),
+                                    "lang": "en"
+                                })
+                            break
+                    except:
+                        continue
         
         ai_result["tcg_matches"] = tcg_matches
         return ai_result
@@ -830,7 +903,11 @@ async def update_card(card_id: str, request: Request):
     if user.get("role") == "child":
         raise HTTPException(status_code=403, detail="Les enfants ne peuvent pas modifier les cartes")
     
-    card = await db.cards.find_one({"_id": ObjectId(card_id), "user_id": user["_id"]})
+    # Admin can update own cards + children's cards
+    child_ids = [str(doc["_id"]) async for doc in db.users.find({"role": "child"}, {"_id": 1})]
+    allowed_ids = [user["_id"]] + child_ids
+    
+    card = await db.cards.find_one({"_id": ObjectId(card_id), "user_id": {"$in": allowed_ids}})
     if not card:
         raise HTTPException(status_code=404, detail="Card not found")
     
@@ -868,7 +945,11 @@ async def delete_card(card_id: str, request: Request):
     if user.get("role") == "child":
         raise HTTPException(status_code=403, detail="Les enfants ne peuvent pas supprimer les cartes")
     
-    result = await db.cards.delete_one({"_id": ObjectId(card_id), "user_id": user["_id"]})
+    # Admin can delete own cards + children's cards
+    child_ids = [str(doc["_id"]) async for doc in db.users.find({"role": "child"}, {"_id": 1})]
+    allowed_ids = [user["_id"]] + child_ids
+    
+    result = await db.cards.delete_one({"_id": ObjectId(card_id), "user_id": {"$in": allowed_ids}})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Card not found")
     return {"message": "Card deleted"}
