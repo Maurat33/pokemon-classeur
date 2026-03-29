@@ -61,6 +61,12 @@ Transformer un classeur Pokemon HTML simple en une application full-stack modern
 - Fix scan IA: pre-filtrage par numero de carte pour trouver la bonne carte FR parmi tous les resultats
 - Auto-detection Generation 1: cartes Gen 1 auto-assignees au classeur "Generation 1"
 
+### Phase 7 - Refactoring Dashboard.js (DONE - 29 Mars 2026)
+- Split Dashboard.js de 1914 lignes en 11 fichiers composants
+- Dashboard.js: 546 lignes (orchestrateur)
+- Composants: CollectionView, AddCardModal, CardDetailModal, StatsView, BindersView, SetsView, AvatarUploadModal, ShareModal, StatChip, constants
+- Tests: 24/24 frontend pass (100%)
+
 ## Key API Endpoints
 - POST/GET /api/auth/* - Auth
 - GET/POST/PUT/DELETE /api/cards - CRUD cartes
