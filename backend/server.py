@@ -362,7 +362,7 @@ If you cannot identify something, use null for that field."""
         image_content = ImageContent(image_base64=data.image_base64)
         user_message = UserMessage(
             text="Analyze this Pokemon card and extract the information.",
-            image_contents=[image_content]
+            file_contents=[image_content]
         )
         
         response = await chat.send_message(user_message)
