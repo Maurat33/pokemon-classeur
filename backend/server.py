@@ -760,7 +760,10 @@ async def get_cards(request: Request):
         else:
             cursor = db.cards.find({"user_id": user["_id"]}).sort("created_at", -1)
     else:
-        cursor = db.cards.find({"user_id": user["_id"]}).sort("created_at", -1)
+        # Admin sees own cards + children's cards
+        child_ids = [doc["_id"] async for doc in db.users.find({"role": "child"}, {"_id": 1})]
+        all_ids = [user["_id"]] + [str(cid) for cid in child_ids]
+        cursor = db.cards.find({"user_id": {"$in": all_ids}}).sort("created_at", -1)
     
     cards = []
     async for card in cursor:
@@ -878,12 +881,13 @@ async def get_stats(request: Request):
     # Children see stats from admin/parent
     if user.get("role") == "child":
         admin = await db.users.find_one({"role": "admin"})
-        target_user_id = str(admin["_id"]) if admin else user["_id"]
+        target_ids = [str(admin["_id"]), user["_id"]] if admin else [user["_id"]]
     else:
-        target_user_id = user["_id"]
+        child_ids = [str(doc["_id"]) async for doc in db.users.find({"role": "child"}, {"_id": 1})]
+        target_ids = [user["_id"]] + child_ids
     
     pipeline = [
-        {"$match": {"user_id": target_user_id}},
+        {"$match": {"user_id": {"$in": target_ids}}},
         {"$group": {
             "_id": None,
             "total_cards": {"$sum": "$quantity"},
@@ -912,7 +916,7 @@ async def get_stats(request: Request):
     
     # Get top card
     top_card = await db.cards.find_one(
-        {"user_id": target_user_id},
+        {"user_id": {"$in": target_ids}},
         sort=[("price", -1)]
     )
     
@@ -935,11 +939,12 @@ async def get_top_cards(request: Request, limit: int = 5):
     # Children see stats from admin/parent
     if user.get("role") == "child":
         admin = await db.users.find_one({"role": "admin"})
-        target_user_id = str(admin["_id"]) if admin else user["_id"]
+        target_ids = [str(admin["_id"]), user["_id"]] if admin else [user["_id"]]
     else:
-        target_user_id = user["_id"]
+        child_ids = [str(doc["_id"]) async for doc in db.users.find({"role": "child"}, {"_id": 1})]
+        target_ids = [user["_id"]] + child_ids
     
-    cursor = db.cards.find({"user_id": target_user_id}).sort("price", -1).limit(limit)
+    cursor = db.cards.find({"user_id": {"$in": target_ids}}).sort("price", -1).limit(limit)
     cards = []
     async for card in cursor:
         card["_id"] = str(card["_id"])
@@ -1181,14 +1186,15 @@ async def delete_binder(binder_id: str, request: Request):
 @app.get("/api/cards/by-set")
 async def get_cards_by_set(request: Request):
     user = await get_current_user(request)
-    target_id = user["_id"]
     if user.get("role") == "child":
         admin = await db.users.find_one({"role": "admin"})
-        if admin:
-            target_id = str(admin["_id"])
+        target_ids = [str(admin["_id"]), user["_id"]] if admin else [user["_id"]]
+    else:
+        child_ids = [str(doc["_id"]) async for doc in db.users.find({"role": "child"}, {"_id": 1})]
+        target_ids = [user["_id"]] + child_ids
     
     pipeline = [
-        {"$match": {"user_id": target_id}},
+        {"$match": {"user_id": {"$in": target_ids}}},
         {"$group": {
             "_id": "$set_name",
             "count": {"$sum": "$quantity"},
