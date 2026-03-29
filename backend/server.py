@@ -119,6 +119,8 @@ async def get_current_user(request: Request) -> dict:
 async def seed_admin():
     admin_email = os.environ.get("ADMIN_EMAIL", "admin@pokemon.com")
     admin_password = os.environ.get("ADMIN_PASSWORD", "Admin123!")
+    
+    # Seed admin
     existing = await db.users.find_one({"email": admin_email})
     if existing is None:
         hashed = hash_password(admin_password)
@@ -136,15 +138,46 @@ async def seed_admin():
             {"$set": {"password_hash": hash_password(admin_password)}}
         )
     
+    # Seed child account for Léo
+    child_email = "leo@pokemon.com"
+    child_password = "Pokemon123"
+    existing_child = await db.users.find_one({"email": child_email})
+    if existing_child is None:
+        hashed = hash_password(child_password)
+        await db.users.insert_one({
+            "email": child_email,
+            "password_hash": hashed,
+            "name": "Léo",
+            "role": "child",
+            "stars": 0,
+            "badges": [],
+            "games_played": 0,
+            "high_scores": {"memory": 0, "quiz": 0, "catch": 0},
+            "created_at": datetime.now(timezone.utc)
+        })
+        print(f"Child user created: {child_email}")
+    elif not verify_password(child_password, existing_child["password_hash"]):
+        await db.users.update_one(
+            {"email": child_email},
+            {"$set": {"password_hash": hash_password(child_password)}}
+        )
+    
     # Write credentials
     os.makedirs("/app/memory", exist_ok=True)
     with open("/app/memory/test_credentials.md", "w") as f:
         f.write(f"""# Test Credentials
 
-## Admin User
+## Admin User (Parent)
 - Email: {admin_email}
 - Password: {admin_password}
 - Role: admin
+- Permissions: Full access (add, edit, delete cards)
+
+## Child User (Léo)
+- Email: leo@pokemon.com
+- Password: Pokemon123
+- Role: child
+- Permissions: View cards, play games (cannot delete or edit prices)
 
 ## Auth Endpoints
 - POST /api/auth/register
@@ -429,7 +462,17 @@ If you cannot identify something, use null for that field."""
 @app.get("/api/cards")
 async def get_cards(request: Request):
     user = await get_current_user(request)
-    cursor = db.cards.find({"user_id": user["_id"]}).sort("created_at", -1)
+    
+    # Children see cards from admin/parent
+    if user.get("role") == "child":
+        admin = await db.users.find_one({"role": "admin"})
+        if admin:
+            cursor = db.cards.find({"user_id": str(admin["_id"])}).sort("created_at", -1)
+        else:
+            cursor = db.cards.find({"user_id": user["_id"]}).sort("created_at", -1)
+    else:
+        cursor = db.cards.find({"user_id": user["_id"]}).sort("created_at", -1)
+    
     cards = []
     async for card in cursor:
         card["_id"] = str(card["_id"])
@@ -462,6 +505,10 @@ async def create_card(data: CardCreate, request: Request):
 async def update_card(card_id: str, data: CardUpdate, request: Request):
     user = await get_current_user(request)
     
+    # Children cannot update cards
+    if user.get("role") == "child":
+        raise HTTPException(status_code=403, detail="Les enfants ne peuvent pas modifier les cartes")
+    
     card = await db.cards.find_one({"_id": ObjectId(card_id), "user_id": user["_id"]})
     if not card:
         raise HTTPException(status_code=404, detail="Card not found")
@@ -492,6 +539,11 @@ async def update_card(card_id: str, data: CardUpdate, request: Request):
 @app.delete("/api/cards/{card_id}")
 async def delete_card(card_id: str, request: Request):
     user = await get_current_user(request)
+    
+    # Children cannot delete cards
+    if user.get("role") == "child":
+        raise HTTPException(status_code=403, detail="Les enfants ne peuvent pas supprimer les cartes")
+    
     result = await db.cards.delete_one({"_id": ObjectId(card_id), "user_id": user["_id"]})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Card not found")
@@ -502,8 +554,15 @@ async def delete_card(card_id: str, request: Request):
 async def get_stats(request: Request):
     user = await get_current_user(request)
     
+    # Children see stats from admin/parent
+    if user.get("role") == "child":
+        admin = await db.users.find_one({"role": "admin"})
+        target_user_id = str(admin["_id"]) if admin else user["_id"]
+    else:
+        target_user_id = user["_id"]
+    
     pipeline = [
-        {"$match": {"user_id": user["_id"]}},
+        {"$match": {"user_id": target_user_id}},
         {"$group": {
             "_id": None,
             "total_cards": {"$sum": "$quantity"},
@@ -532,7 +591,7 @@ async def get_stats(request: Request):
     
     # Get top card
     top_card = await db.cards.find_one(
-        {"user_id": user["_id"]},
+        {"user_id": target_user_id},
         sort=[("price", -1)]
     )
     
@@ -551,7 +610,15 @@ async def get_stats(request: Request):
 @app.get("/api/stats/top-cards")
 async def get_top_cards(request: Request, limit: int = 5):
     user = await get_current_user(request)
-    cursor = db.cards.find({"user_id": user["_id"]}).sort("price", -1).limit(limit)
+    
+    # Children see stats from admin/parent
+    if user.get("role") == "child":
+        admin = await db.users.find_one({"role": "admin"})
+        target_user_id = str(admin["_id"]) if admin else user["_id"]
+    else:
+        target_user_id = user["_id"]
+    
+    cursor = db.cards.find({"user_id": target_user_id}).sort("price", -1).limit(limit)
     cards = []
     async for card in cursor:
         card["_id"] = str(card["_id"])
@@ -715,6 +782,183 @@ async def export_excel(request: Request):
 @app.get("/api/health")
 async def health():
     return {"status": "healthy", "timestamp": datetime.now(timezone.utc).isoformat()}
+
+# ============ GAMES & REWARDS ============
+import random
+
+# Pokemon data for games
+POKEMON_FOR_GAMES = [
+    {"name": "Pikachu", "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png"},
+    {"name": "Dracaufeu", "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/6.png"},
+    {"name": "Tortank", "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/9.png"},
+    {"name": "Florizarre", "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/3.png"},
+    {"name": "Mewtwo", "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/150.png"},
+    {"name": "Évoli", "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/133.png"},
+    {"name": "Ronflex", "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/143.png"},
+    {"name": "Dracolosse", "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/149.png"},
+    {"name": "Mew", "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/151.png"},
+    {"name": "Lucario", "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/448.png"},
+    {"name": "Salamèche", "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/4.png"},
+    {"name": "Carapuce", "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/7.png"},
+    {"name": "Bulbizarre", "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/1.png"},
+    {"name": "Raichu", "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/26.png"},
+    {"name": "Artikodin", "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/144.png"},
+    {"name": "Électhor", "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/145.png"},
+    {"name": "Sulfura", "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/146.png"},
+    {"name": "Léviator", "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/130.png"},
+]
+
+BADGES = [
+    {"id": "first_game", "name": "Premier Pas", "emoji": "🎮", "desc": "Joue ton premier jeu"},
+    {"id": "memory_master", "name": "Maître de la Mémoire", "emoji": "🧠", "desc": "Gagne 5 parties de Memory"},
+    {"id": "quiz_champion", "name": "Champion du Quiz", "emoji": "🏆", "desc": "Réponds juste 10 fois au Quiz"},
+    {"id": "catcher", "name": "Attrapeur", "emoji": "🎯", "desc": "Attrape 20 Pokémon"},
+    {"id": "star_collector", "name": "Collectionneur d'Étoiles", "emoji": "⭐", "desc": "Gagne 50 étoiles"},
+    {"id": "super_player", "name": "Super Joueur", "emoji": "🌟", "desc": "Joue 10 parties"},
+]
+
+@app.get("/api/games/memory")
+async def get_memory_game(request: Request):
+    """Get cards for memory game"""
+    user = await get_current_user(request)
+    
+    # Select 6 random pokemon (12 cards total for pairs)
+    selected = random.sample(POKEMON_FOR_GAMES, 6)
+    cards = []
+    for i, poke in enumerate(selected):
+        cards.append({"id": i*2, "pokemon": poke["name"], "image": poke["image"], "pairId": i})
+        cards.append({"id": i*2+1, "pokemon": poke["name"], "image": poke["image"], "pairId": i})
+    
+    random.shuffle(cards)
+    return {"cards": cards}
+
+@app.get("/api/games/quiz")
+async def get_quiz_question(request: Request):
+    """Get a quiz question"""
+    user = await get_current_user(request)
+    
+    correct = random.choice(POKEMON_FOR_GAMES)
+    wrong_choices = random.sample([p for p in POKEMON_FOR_GAMES if p["name"] != correct["name"]], 3)
+    
+    options = [correct["name"]] + [p["name"] for p in wrong_choices]
+    random.shuffle(options)
+    
+    return {
+        "image": correct["image"],
+        "options": options,
+        "correct": correct["name"]
+    }
+
+@app.get("/api/games/catch")
+async def get_catch_game(request: Request):
+    """Get pokemon for catch game"""
+    user = await get_current_user(request)
+    
+    # Return 8 pokemon to catch
+    selected = random.sample(POKEMON_FOR_GAMES, 8)
+    return {"pokemon": selected, "timeLimit": 30}
+
+@app.post("/api/games/score")
+async def save_game_score(request: Request):
+    """Save game score and award stars"""
+    user = await get_current_user(request)
+    data = await request.json()
+    
+    game = data.get("game")  # memory, quiz, catch
+    score = data.get("score", 0)
+    won = data.get("won", False)
+    
+    # Calculate stars earned
+    stars_earned = 0
+    if won:
+        if game == "memory":
+            stars_earned = 3
+        elif game == "quiz":
+            stars_earned = 1
+        elif game == "catch":
+            stars_earned = max(1, score // 2)
+    
+    # Update user stats
+    update_ops = {
+        "$inc": {
+            "stars": stars_earned,
+            "games_played": 1,
+            f"game_stats.{game}_played": 1,
+        }
+    }
+    
+    if won:
+        update_ops["$inc"][f"game_stats.{game}_won"] = 1
+    
+    # Update high score if better
+    current_user = await db.users.find_one({"_id": ObjectId(user["_id"])})
+    high_scores = current_user.get("high_scores", {})
+    if score > high_scores.get(game, 0):
+        update_ops["$set"] = {f"high_scores.{game}": score}
+    
+    await db.users.update_one({"_id": ObjectId(user["_id"])}, update_ops)
+    
+    # Check for new badges
+    new_badges = []
+    current_badges = current_user.get("badges", [])
+    game_stats = current_user.get("game_stats", {})
+    current_stars = current_user.get("stars", 0) + stars_earned
+    games_played = current_user.get("games_played", 0) + 1
+    
+    # First game badge
+    if games_played == 1 and "first_game" not in current_badges:
+        new_badges.append("first_game")
+    
+    # Memory master (5 wins)
+    if game_stats.get("memory_won", 0) + (1 if won and game == "memory" else 0) >= 5 and "memory_master" not in current_badges:
+        new_badges.append("memory_master")
+    
+    # Quiz champion (10 correct)
+    if game_stats.get("quiz_won", 0) + (1 if won and game == "quiz" else 0) >= 10 and "quiz_champion" not in current_badges:
+        new_badges.append("quiz_champion")
+    
+    # Star collector (50 stars)
+    if current_stars >= 50 and "star_collector" not in current_badges:
+        new_badges.append("star_collector")
+    
+    # Super player (10 games)
+    if games_played >= 10 and "super_player" not in current_badges:
+        new_badges.append("super_player")
+    
+    if new_badges:
+        await db.users.update_one(
+            {"_id": ObjectId(user["_id"])},
+            {"$push": {"badges": {"$each": new_badges}}}
+        )
+    
+    # Get badge details for new badges
+    new_badge_details = [b for b in BADGES if b["id"] in new_badges]
+    
+    return {
+        "stars_earned": stars_earned,
+        "total_stars": current_stars,
+        "new_badges": new_badge_details
+    }
+
+@app.get("/api/user/profile")
+async def get_user_profile(request: Request):
+    """Get user profile with stars and badges"""
+    user = await get_current_user(request)
+    
+    full_user = await db.users.find_one({"_id": ObjectId(user["_id"])})
+    
+    user_badges = full_user.get("badges", [])
+    badge_details = [b for b in BADGES if b["id"] in user_badges]
+    
+    return {
+        "name": full_user.get("name"),
+        "role": full_user.get("role"),
+        "stars": full_user.get("stars", 0),
+        "badges": badge_details,
+        "games_played": full_user.get("games_played", 0),
+        "high_scores": full_user.get("high_scores", {}),
+        "game_stats": full_user.get("game_stats", {})
+    }
 
 if __name__ == "__main__":
     import uvicorn

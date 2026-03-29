@@ -4,13 +4,14 @@ import {
   Search, Plus, BarChart3, Share2, Download, LogOut, Camera, 
   X, Trash2, Edit3, ChevronDown, TrendingUp, Award, 
   Package, Zap, FileSpreadsheet, FileText, ExternalLink, Copy,
-  CheckCircle, AlertCircle, Sun, Moon
+  CheckCircle, AlertCircle, Sun, Moon, Gamepad2, Star
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import * as api from '../services/api';
 import { useDropzone } from 'react-dropzone';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import GamesPage from './GamesPage';
 
 const CONDITION_LABELS = {
   mint: { label: '✨ Mint', bg: 'cond-mint' },
@@ -28,6 +29,7 @@ export default function Dashboard() {
   const { user, logout } = useAuth();
   const { isDark, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState('collection');
+  const [showGames, setShowGames] = useState(false);
   const [cards, setCards] = useState([]);
   const [stats, setStats] = useState(null);
   const [topCards, setTopCards] = useState([]);
@@ -40,6 +42,8 @@ export default function Dashboard() {
   const [filterCondition, setFilterCondition] = useState('');
   const [sortBy, setSortBy] = useState('date');
   const [toast, setToast] = useState(null);
+  
+  const isChild = user?.role === 'child';
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -129,6 +133,11 @@ export default function Dashboard() {
       return new Date(b.created_at) - new Date(a.created_at);
     });
 
+  // If showing games page
+  if (showGames) {
+    return <GamesPage onBack={() => setShowGames(false)} isDark={isDark} />;
+  }
+
   return (
     <div className="min-h-screen">
       {/* Header */}
@@ -164,18 +173,25 @@ export default function Dashboard() {
             <motion.div animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 2, repeat: Infinity }}>
               <Pokeball />
             </motion.div>
-            <h1 
-              className={`text-3xl md:text-4xl font-bold ${isDark ? 'holographic-text' : 'text-white'}`}
-              style={{ fontFamily: "'Fredoka One', cursive", textShadow: isDark ? 'none' : '2px 2px 0 #1a1a2e' }}
-            >
-              Mon Classeur Pokémon
-            </h1>
+            <div className="text-center">
+              <h1 
+                className={`text-3xl md:text-4xl font-bold ${isDark ? 'holographic-text' : 'text-white'}`}
+                style={{ fontFamily: "'Fredoka One', cursive", textShadow: isDark ? 'none' : '2px 2px 0 #1a1a2e' }}
+              >
+                {isChild ? `Bienvenue ${user?.name} !` : 'Mon Classeur Pokémon'}
+              </h1>
+              {isChild && (
+                <p className="text-yellow-300 font-bold text-sm mt-1">
+                  ⭐ Mode Explorateur Pokémon ⭐
+                </p>
+              )}
+            </div>
             <motion.div animate={{ rotate: [0, -10, 10, 0] }} transition={{ duration: 2, repeat: Infinity }}>
               <Pokeball />
             </motion.div>
           </div>
           <p className={`text-center text-sm ${isDark ? 'text-gray-400' : 'text-white/90'}`}>
-            ✨ Scanne tes cartes • Trouve les prix • Suis ta collection !
+            ✨ {isChild ? 'Regarde tes super cartes et joue !' : 'Scanne tes cartes • Trouve les prix • Suis ta collection !'}
           </p>
         </div>
       </header>
@@ -198,21 +214,35 @@ export default function Dashboard() {
 
       {/* Navigation */}
       <nav className="flex flex-wrap justify-center gap-3 py-6 px-4">
+        {/* Games button - prominent for children */}
         <button
-          onClick={() => setShowAddModal(true)}
-          className="btn-pokemon btn-pokemon-gold"
+          onClick={() => setShowGames(true)}
+          className={`btn-pokemon ${isChild ? 'btn-pokemon-gold animate-pulse' : 'btn-pokemon-outline'}`}
           style={{ fontFamily: "'Fredoka One', cursive" }}
-          data-testid="nav-add"
+          data-testid="nav-games"
         >
-          📷 Ajouter une carte
+          🎮 Jouer !
         </button>
+        
+        {/* Add card - only for non-children */}
+        {!isChild && (
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="btn-pokemon btn-pokemon-gold"
+            style={{ fontFamily: "'Fredoka One', cursive" }}
+            data-testid="nav-add"
+          >
+            📷 Ajouter une carte
+          </button>
+        )}
+        
         <button
           onClick={() => setActiveTab('collection')}
           className={`btn-pokemon ${activeTab === 'collection' ? '' : 'btn-pokemon-outline'}`}
           style={{ fontFamily: "'Fredoka One', cursive" }}
           data-testid="nav-collection"
         >
-          📖 Mon Classeur
+          📖 {isChild ? 'Mes Cartes' : 'Mon Classeur'}
         </button>
         <button
           onClick={() => setActiveTab('stats')}
@@ -224,50 +254,63 @@ export default function Dashboard() {
         </button>
       </nav>
 
-      {/* Action buttons */}
-      <div className="flex justify-center gap-3 mb-6 px-4">
-        <button
-          onClick={handleShare}
-          className="btn-pokemon btn-pokemon-outline text-sm py-2 px-4"
-          data-testid="share-btn"
-        >
-          <Share2 size={16} className="inline mr-2" />
-          Partager
-        </button>
-        <div className="relative group">
-          <button className="btn-pokemon btn-pokemon-outline text-sm py-2 px-4">
-            <Download size={16} className="inline mr-2" />
-            Exporter
-            <ChevronDown size={14} className="inline ml-1" />
+      {/* Action buttons - only for adults */}
+      {!isChild ? (
+        <div className="flex justify-center gap-3 mb-6 px-4">
+          <button
+            onClick={handleShare}
+            className="btn-pokemon btn-pokemon-outline text-sm py-2 px-4"
+            data-testid="share-btn"
+          >
+            <Share2 size={16} className="inline mr-2" />
+            Partager
           </button>
-          <div className="absolute left-0 top-full mt-2 card-pokemon overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20 min-w-[120px]">
-            <button
-              onClick={() => handleExport('pdf')}
-              className="flex items-center gap-2 px-4 py-3 w-full text-left hover:bg-white/5 font-semibold text-sm"
-              data-testid="export-pdf"
-            >
-              <FileText size={16} />
-              PDF
+          <div className="relative group">
+            <button className="btn-pokemon btn-pokemon-outline text-sm py-2 px-4">
+              <Download size={16} className="inline mr-2" />
+              Exporter
+              <ChevronDown size={14} className="inline ml-1" />
             </button>
-            <button
-              onClick={() => handleExport('excel')}
-              className="flex items-center gap-2 px-4 py-3 w-full text-left hover:bg-white/5 font-semibold text-sm"
-              data-testid="export-excel"
-            >
-              <FileSpreadsheet size={16} />
-              Excel
-            </button>
+            <div className="absolute left-0 top-full mt-2 card-pokemon overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20 min-w-[120px]">
+              <button
+                onClick={() => handleExport('pdf')}
+                className="flex items-center gap-2 px-4 py-3 w-full text-left hover:bg-white/5 font-semibold text-sm"
+                data-testid="export-pdf"
+              >
+                <FileText size={16} />
+                PDF
+              </button>
+              <button
+                onClick={() => handleExport('excel')}
+                className="flex items-center gap-2 px-4 py-3 w-full text-left hover:bg-white/5 font-semibold text-sm"
+                data-testid="export-excel"
+              >
+                <FileSpreadsheet size={16} />
+                Excel
+              </button>
+            </div>
           </div>
+          <button
+            onClick={logout}
+            className="btn-pokemon btn-pokemon-outline text-sm py-2 px-4"
+            data-testid="logout-btn"
+          >
+            <LogOut size={16} className="inline mr-2" />
+            {user?.name}
+          </button>
         </div>
-        <button
-          onClick={logout}
-          className="btn-pokemon btn-pokemon-outline text-sm py-2 px-4"
-          data-testid="logout-btn"
-        >
-          <LogOut size={16} className="inline mr-2" />
-          {user?.name}
-        </button>
-      </div>
+      ) : (
+        <div className="flex justify-center mb-6 px-4">
+          <button
+            onClick={logout}
+            className="btn-pokemon btn-pokemon-outline text-sm py-2 px-4"
+            data-testid="logout-btn"
+          >
+            <LogOut size={16} className="inline mr-2" />
+            Quitter
+          </button>
+        </div>
+      )}
 
       {/* Main Content */}
       <main className="max-w-6xl mx-auto px-4 pb-8">
@@ -310,6 +353,7 @@ export default function Dashboard() {
             onClose={() => setShowDetailModal(null)}
             onDelete={handleDeleteCard}
             onUpdatePrice={handleUpdatePrice}
+            isChild={isChild}
           />
         )}
         
@@ -920,7 +964,7 @@ function AddCardModal({ onClose, onSuccess }) {
   );
 }
 
-function CardDetailModal({ card, onClose, onDelete, onUpdatePrice }) {
+function CardDetailModal({ card, onClose, onDelete, onUpdatePrice, isChild = false }) {
   const [editing, setEditing] = useState(false);
   const [newPrice, setNewPrice] = useState(card.price.toString());
 
@@ -972,7 +1016,7 @@ function CardDetailModal({ card, onClose, onDelete, onUpdatePrice }) {
             </div>
             <div>
               <div className="text-xs text-gray-500 font-bold uppercase">Valeur</div>
-              {editing ? (
+              {editing && !isChild ? (
                 <div className="flex gap-2">
                   <input
                     type="number"
@@ -992,9 +1036,11 @@ function CardDetailModal({ card, onClose, onDelete, onUpdatePrice }) {
                   >
                     {card.price.toFixed(2)}€
                   </span>
-                  <button onClick={() => setEditing(true)} className="text-gray-500 hover:text-cyan-400">
-                    <Edit3 size={16} />
-                  </button>
+                  {!isChild && (
+                    <button onClick={() => setEditing(true)} className="text-gray-500 hover:text-cyan-400">
+                      <Edit3 size={16} />
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -1002,17 +1048,19 @@ function CardDetailModal({ card, onClose, onDelete, onUpdatePrice }) {
         </div>
 
         <div className="flex gap-3 mt-6">
-          <button
-            onClick={() => onDelete(card._id)}
-            className="flex-1 btn-pokemon flex items-center justify-center gap-2"
-            style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)' }}
-            data-testid="delete-card-btn"
-          >
-            <Trash2 size={18} />
-            Supprimer
-          </button>
-          <button onClick={onClose} className="flex-1 btn-pokemon btn-pokemon-outline">
-            Fermer
+          {!isChild && (
+            <button
+              onClick={() => onDelete(card._id)}
+              className="flex-1 btn-pokemon flex items-center justify-center gap-2"
+              style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)' }}
+              data-testid="delete-card-btn"
+            >
+              <Trash2 size={18} />
+              Supprimer
+            </button>
+          )}
+          <button onClick={onClose} className={`${isChild ? 'w-full' : 'flex-1'} btn-pokemon btn-pokemon-outline`}>
+            {isChild ? '👍 Super carte !' : 'Fermer'}
           </button>
         </div>
       </motion.div>
