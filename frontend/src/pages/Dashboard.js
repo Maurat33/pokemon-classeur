@@ -1153,7 +1153,9 @@ function AddCardModal({ onClose, onSuccess }) {
   const [formData, setFormData] = useState({
     price: '',
     condition: 'good',
-    quantity: 1
+    quantity: 1,
+    frenchName: '',
+    useOwnPhoto: false
   });
 
   const onDrop = useCallback(async (acceptedFiles) => {
@@ -1223,7 +1225,7 @@ function AddCardModal({ onClose, onSuccess }) {
         }
       }
     }
-    setFormData(prev => ({ ...prev, price: price.toFixed(2) }));
+    setFormData(prev => ({ ...prev, price: price.toFixed(2), frenchName: searchQuery || '' }));
     setStep(3);
   };
 
@@ -1231,12 +1233,17 @@ function AddCardModal({ onClose, onSuccess }) {
     if (!selectedCard) return;
     setLoading(true);
     try {
+      // Use French name if provided, otherwise English
+      const displayName = formData.frenchName?.trim() || selectedCard.name;
+      // Use uploaded photo if available, otherwise TCG image
+      const imageUrl = formData.useOwnPhoto && uploadedImage ? uploadedImage : (selectedCard.image_large || selectedCard.image);
+      
       await api.createCard({
-        pokemon_name: selectedCard.name,
-        card_name: selectedCard.name,
+        pokemon_name: displayName,
+        card_name: displayName,
         set_name: selectedCard.set,
         card_number: selectedCard.number,
-        image_url: selectedCard.image_large || selectedCard.image,
+        image_url: imageUrl,
         price: parseFloat(formData.price) || 0,
         condition: formData.condition,
         quantity: parseInt(formData.quantity) || 1,
@@ -1323,7 +1330,7 @@ function AddCardModal({ onClose, onSuccess }) {
                 🔍 Chercher la carte
               </h3>
               <p className="text-gray-500 text-center text-sm mb-4">
-                Entre le nom du Pokémon (en anglais de préférence)
+                Entre le nom du Pokémon (français ou anglais)
               </p>
               <div className="flex gap-3">
                 <input
@@ -1331,7 +1338,7 @@ function AddCardModal({ onClose, onSuccess }) {
                   value={searchQuery}
                   onChange={(e) => { setSearchQuery(e.target.value); setNoResults(false); }}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch(searchQuery)}
-                  placeholder="Ex: Charizard, Pikachu, Mewtwo..."
+                  placeholder="Ex: Ectoplasma, Dracaufeu, Pikachu..."
                   className="flex-1 input-pokemon"
                   data-testid="search-card-input"
                 />
@@ -1348,12 +1355,12 @@ function AddCardModal({ onClose, onSuccess }) {
               
               {noResults && (
                 <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl text-center">
-                  <p className="text-yellow-400 font-semibold mb-2">❌ Aucun résultat pour "{searchQuery}"</p>
+                  <p className="text-yellow-400 font-semibold mb-2">Aucun résultat pour "{searchQuery}"</p>
                   <p className="text-yellow-400/80 text-sm">
-                    💡 <strong>Astuce :</strong> Utilise le <strong>nom anglais</strong> du Pokémon !
+                    Essaie un nom un peu différent ou le nom anglais.
                   </p>
                   <p className="text-yellow-400/60 text-xs mt-1">
-                    Ex: Dracaufeu → Charizard, Tortank → Blastoise
+                    Ex: Ectoplasma → Gengar, Dracaufeu → Charizard
                   </p>
                 </div>
               )}
@@ -1401,11 +1408,25 @@ function AddCardModal({ onClose, onSuccess }) {
               ← Retour
             </button>
             <div className="flex flex-col sm:flex-row gap-6">
-              <img 
-                src={selectedCard.image_large || selectedCard.image} 
-                alt={selectedCard.name}
-                className="w-40 rounded-xl border border-white/20 mx-auto sm:mx-0"
-              />
+              <div className="flex flex-col items-center gap-2">
+                <img 
+                  src={formData.useOwnPhoto && uploadedImage ? uploadedImage : (selectedCard.image_large || selectedCard.image)} 
+                  alt={selectedCard.name}
+                  className="w-40 rounded-xl border border-white/20"
+                />
+                {uploadedImage && (
+                  <label className="flex items-center gap-2 cursor-pointer text-sm">
+                    <input
+                      type="checkbox"
+                      checked={formData.useOwnPhoto}
+                      onChange={(e) => setFormData({ ...formData, useOwnPhoto: e.target.checked })}
+                      className="rounded border-white/20"
+                      data-testid="use-own-photo"
+                    />
+                    <span className="text-cyan-400 font-semibold">Ma photo</span>
+                  </label>
+                )}
+              </div>
               <div className="flex-1 space-y-4">
                 <div>
                   <h3 
@@ -1420,6 +1441,19 @@ function AddCardModal({ onClose, onSuccess }) {
                       {selectedCard.rarity}
                     </span>
                   )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-400 mb-1">🇫🇷 Nom français</label>
+                  <input
+                    type="text"
+                    value={formData.frenchName}
+                    onChange={(e) => setFormData({ ...formData, frenchName: e.target.value })}
+                    placeholder={selectedCard.name}
+                    className="w-full input-pokemon text-sm"
+                    data-testid="french-name-input"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Laisse vide pour garder le nom anglais</p>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-3">
