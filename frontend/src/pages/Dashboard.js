@@ -301,17 +301,14 @@ export default function Dashboard() {
           🎮 Jouer !
         </button>
         
-        {/* Add card - only for non-children */}
-        {!isChild && (
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="btn-pokemon btn-pokemon-gold"
-            style={{ fontFamily: "'Fredoka One', cursive" }}
-            data-testid="nav-add"
-          >
-            📷 Ajouter une carte
-          </button>
-        )}
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="btn-pokemon btn-pokemon-gold"
+          style={{ fontFamily: "'Fredoka One', cursive" }}
+          data-testid="nav-add"
+        >
+          📷 Ajouter une carte
+        </button>
         
         <button
           onClick={() => setActiveTab('collection')}

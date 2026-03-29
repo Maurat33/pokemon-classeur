@@ -474,11 +474,11 @@ If you cannot identify something, use null for that field."""
 async def get_cards(request: Request):
     user = await get_current_user(request)
     
-    # Children see cards from admin/parent
+    # Children see cards from admin/parent AND their own
     if user.get("role") == "child":
         admin = await db.users.find_one({"role": "admin"})
         if admin:
-            cursor = db.cards.find({"user_id": str(admin["_id"])}).sort("created_at", -1)
+            cursor = db.cards.find({"user_id": {"$in": [str(admin["_id"]), user["_id"]]}}).sort("created_at", -1)
         else:
             cursor = db.cards.find({"user_id": user["_id"]}).sort("created_at", -1)
     else:
