@@ -1,97 +1,90 @@
 # Pokemon Classeur - PRD
 
 ## Original Problem Statement
-Récupérer le code du classeur Pokemon depuis GitHub (https://github.com/Maurat33/pokemon-classeur.git) et le transformer en une application complète avec:
-- UI/UX premium surprenante
-- Authentification pour sauvegarder en ligne
-- Scan IA pour reconnaître les cartes
-- Historique des prix
-- Partage de collection
-- API de prix en temps réel (gratuit)
-- Export PDF/Excel
+Transformer un classeur Pokemon HTML simple en une application full-stack moderne avec scan IA, prix via Pokemon TCG API, themes personnalises, et un "Mode Enfant" pour Leo (5 ans).
 
 ## User Personas
-1. **Léo** - Collectionneur de cartes Pokemon qui veut gérer sa collection digitalement
-2. **Parents** - Qui veulent suivre la valeur de la collection de leurs enfants
-3. **Traders** - Qui veulent connaître les prix du marché
-
-## Core Requirements (Static)
-- ✅ Authentification JWT sécurisée
-- ✅ Recherche de cartes via Pokemon TCG API
-- ✅ Ajout/modification/suppression de cartes
-- ✅ Statistiques de collection
-- ✅ Partage de collection
-- ✅ Export PDF/Excel
-- ✅ Reconnaissance IA de cartes (GPT-4o Vision)
-- ✅ Design premium holographique sombre
+1. **Admin/Parent** - Gere la collection, ajoute/supprime des cartes, voit les prix, partage
+2. **Leo (Enfant)** - Consulte les cartes en lecture seule, joue aux mini-jeux, personalise son avatar
 
 ## Tech Stack
-- **Frontend**: React 18, Tailwind CSS, Framer Motion, Recharts
+- **Frontend**: React 18, Tailwind CSS, Framer Motion, Recharts, Lucide Icons
 - **Backend**: FastAPI, Motor (MongoDB async), PyJWT, bcrypt
 - **Database**: MongoDB
 - **AI**: OpenAI GPT-4o Vision (via Emergent LLM Key)
 - **External API**: Pokemon TCG API (gratuit)
 
-## What's Been Implemented (29 Mars 2026)
+## What's Been Implemented
 
-### Backend
-- `/api/auth/*` - Authentification complète (register, login, logout, me, refresh)
-- `/api/pokemon/search` - Recherche Pokemon TCG API
-- `/api/pokemon/card/{id}` - Détails d'une carte
-- `/api/ai/analyze-card` - Reconnaissance IA de carte
-- `/api/cards` - CRUD collection
-- `/api/stats` - Statistiques
-- `/api/share` - Partage de collection
-- `/api/export/pdf` et `/api/export/excel` - Exports
+### Phase 1 - Core (DONE - 29 Mars 2026)
+- Migration HTML -> React/FastAPI/MongoDB
+- Auth JWT securisee (register, login, logout, refresh)
+- Recherche Pokemon TCG API avec traduction FR->EN
+- CRUD collection de cartes
+- Scan IA de cartes (GPT-4o Vision)
+- Statistiques de collection
+- Export PDF/Excel
+- Partage de collection (lien public)
 
-### Frontend
-- Page d'authentification avec design premium
-- Dashboard avec navigation
-- Grille de collection avec filtres/tri
-- Modal d'ajout de carte avec recherche et IA
-- Modal de détail de carte avec édition de prix
-- Page de statistiques avec graphiques
-- Page de collection partagée
-- Toast notifications
+### Phase 2 - Design & Theme (DONE - 29 Mars 2026)
+- Theme sombre holographique (Pokeball design)
+- Mode clair
+- Toggle theme
+- Glassmorphism + animations Framer Motion
 
-### Design
-- Thème sombre "Jewel & Luxury"
-- Effets holographiques (gradients animés)
-- Glassmorphism
-- Animations Framer Motion
-- Fonts: Outfit (headings), Manrope (body)
+### Phase 3 - Mode Enfant (DONE - 29 Mars 2026)
+- Compte enfant Leo (leo@pokemon.com)
+- Dashboard personnalise "Bienvenue Leo !"
+- Collection en lecture seule (voit les cartes du parent)
+- Mini-jeux: Memory, Quiz Pokemon, Attrape-les !
+- Systeme d'etoiles et badges
+- Upload d'avatar/photo de profil
 
-## Test Results
-- Backend: 100% fonctionnel (13 endpoints)
-- Frontend: 95% fonctionnel
+### Phase 4 - Organisation & Vitrine (DONE - 29 Mars 2026)
+- Classeurs/Dossiers (creer, supprimer, filtrer)
+- Vue par Extension/Set (regroupement par extension avec nombre et valeur)
+- Filtres par type Pokemon (Feu, Eau, Plante, etc. avec icones)
+- Tri par extension
+- Mode Vitrine (page publique stylisee pour l'admin)
+- Bouton Deconnexion rouge visible sur tous les comptes
+- Filtre par classeur dans la collection
+
+## Key API Endpoints
+- POST/GET /api/auth/* - Auth
+- GET/POST/PUT/DELETE /api/cards - CRUD cartes
+- GET /api/cards/by-set - Cartes groupees par extension
+- GET/POST/PUT/DELETE /api/binders - CRUD classeurs
+- POST /api/vitrine/create - Creer vitrine
+- GET /api/vitrine/:token - Page publique vitrine
+- POST /api/ai/analyze-card - Scan IA
+- GET /api/pokemon/search - Recherche TCG API
+- GET/POST /api/user/profile, /api/user/avatar - Profil
+- GET/POST /api/games/* - Mini-jeux
+- GET /api/stats - Statistiques
+- POST /api/share - Partage collection
+
+## DB Schema
+- users: {email, password_hash, name, role, avatar, stars, badges, games_played, high_scores, game_stats}
+- cards: {user_id, pokemon_name, card_name, set_name, image_url, price, condition, quantity, types, binder_id, rarity, tcg_id, price_history}
+- binders: {user_id, name, description, color}
+- shares: {user_id, token, user_name}
+- vitrines: {user_id, token, title, description, user_name}
 
 ## Prioritized Backlog
 
-### P0 (Critical) - DONE
-- ✅ Authentication
-- ✅ Card management CRUD
-- ✅ Pokemon TCG API integration
+### P0 (Critical) - ALL DONE
+- Auth, CRUD, TCG API, AI, Export, Share, Child mode, Binders, Sets, Types, Vitrine
 
-### P1 (High) - DONE
-- ✅ Statistics dashboard
-- ✅ Share collection
-- ✅ Export PDF/Excel
-- ✅ AI card recognition
+### P1 (High) - Future
+- [ ] Historique des prix par carte (graphiques)
+- [ ] Assigner des cartes aux classeurs (drag & drop ou menu)
 
 ### P2 (Medium) - Future
-- [ ] Price history charts per card
 - [ ] Notifications de changement de prix
-- [ ] Mode offline avec sync
 - [ ] PWA support
+- [ ] Mode offline avec sync
 
 ### P3 (Low) - Backlog
 - [ ] Multi-langue
-- [ ] Dark/Light mode toggle
 - [ ] Wishlist de cartes
 - [ ] Comparaison de collections
-
-## Next Tasks
-1. Attendre que le preview Kubernetes se réactive
-2. Tester le flow complet de bout en bout
-3. Ajouter l'historique des prix détaillé par carte
-4. Optimiser les performances (lazy loading images)
