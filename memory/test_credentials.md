@@ -10,7 +10,7 @@
 - Email: maurat.leo@gmail.com
 - Password: Facile33
 - Role: child
-- Permissions: View cards, add cards, play games
+- Permissions: View cards, play games (cannot delete or edit prices)
 
 ## Auth Endpoints
 - POST /api/auth/register
@@ -18,5 +18,3 @@
 - POST /api/auth/logout
 - GET /api/auth/me
 - POST /api/auth/refresh
-- POST /api/auth/forgot-password
-- POST /api/auth/reset-password
