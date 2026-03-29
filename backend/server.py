@@ -642,36 +642,107 @@ async def analyze_card(data: AIAnalyzeRequest, request: Request):
         chat = LlmChat(
             api_key=api_key,
             session_id=f"card-analysis-{user['_id']}-{datetime.now().timestamp()}",
-            system_message="""You are a Pokemon card expert. Analyze the image and extract:
-1. Pokemon name
-2. Card set/extension name  
-3. Card number (if visible)
-4. Rarity (common, uncommon, rare, holo rare, ultra rare, etc)
-5. Estimated condition (mint, excellent, good, poor)
+            system_message="""You are a world-class Pokemon TCG card identification expert. You can identify ANY Pokemon card from a photo with extreme precision.
 
-Respond ONLY in this exact JSON format:
-{"pokemon_name": "...", "set_name": "...", "card_number": "...", "rarity": "...", "condition": "..."}
+When you see a Pokemon card image, you MUST extract:
+1. **English name** of the Pokemon (even if the card is in French, Japanese, etc.)
+2. **Set name** in English (e.g. "Paldean Fates", "Obsidian Flames", "Crown Zenith")
+3. **Card number** (e.g. "057/091", "25/198")
+4. **Rarity** (Common, Uncommon, Rare, Holo Rare, Ultra Rare, Secret Rare, etc.)
+5. **Card condition estimate** (mint, excellent, good, poor)
+6. **French name** of the Pokemon if the card is in French
+7. **Card suffix** if applicable (ex, GX, V, VMAX, VSTAR, EX)
 
-If you cannot identify something, use null for that field."""
+IMPORTANT IDENTIFICATION TIPS:
+- Look at the set symbol (bottom right or left of the card art)
+- Read the card number at the bottom (format: XXX/YYY)
+- Read the Pokemon name at the top of the card
+- The set can often be identified by the set symbol icon
+- For French cards: "Ectoplasma" = Gengar, "Dracaufeu" = Charizard, etc.
+- For EX/GX/V cards, include the suffix in the name
+
+Respond ONLY in this exact JSON format (no extra text):
+{"pokemon_name_en": "Gengar", "pokemon_name_fr": "Ectoplasma", "set_name": "Paldean Fates", "card_number": "057/091", "rarity": "Holo Rare", "condition": "good", "suffix": "ex"}
+
+If you cannot identify something with certainty, provide your best guess. NEVER use null - always try."""
         ).with_model("openai", "gpt-4o")
         
         image_content = ImageContent(image_base64=data.image_base64)
         user_message = UserMessage(
-            text="Analyze this Pokemon card and extract the information.",
+            text="Identify this Pokemon card precisely. Extract the English name, French name if applicable, set name, card number, rarity and condition.",
             file_contents=[image_content]
         )
         
         response = await chat.send_message(user_message)
         
         # Parse JSON from response
-        import json
+        import json as json_module
         import re
         json_match = re.search(r'\{[^}]+\}', response)
-        if json_match:
-            result = json.loads(json_match.group())
-            return result
-        else:
-            return {"pokemon_name": None, "set_name": None, "card_number": None, "rarity": None, "condition": "good"}
+        if not json_match:
+            return {"pokemon_name_en": None, "pokemon_name_fr": None, "set_name": None, "card_number": None, "rarity": None, "condition": "good", "tcg_matches": []}
+        
+        ai_result = json_module.loads(json_match.group())
+        
+        # Now search Pokemon TCG API for exact match
+        tcg_matches = []
+        async with httpx.AsyncClient() as client:
+            en_name = ai_result.get("pokemon_name_en", "")
+            suffix = ai_result.get("suffix", "")
+            card_number = ai_result.get("card_number", "")
+            set_name = ai_result.get("set_name", "")
+            
+            # Build precise search query
+            search_name = en_name
+            if suffix:
+                search_name = f"{en_name} {suffix}".strip()
+            
+            queries_to_try = []
+            
+            # Most precise: name + number
+            if card_number and "/" in card_number:
+                num = card_number.split("/")[0].lstrip("0")
+                queries_to_try.append(f'name:"{search_name}" number:{num}')
+            
+            # Name + set
+            if set_name:
+                queries_to_try.append(f'name:"{search_name}" set.name:"{set_name}"')
+            
+            # Just the name with suffix
+            queries_to_try.append(f'name:"{search_name}"')
+            
+            # Fallback: base name wildcard
+            queries_to_try.append(f'name:{en_name}*')
+            
+            for q in queries_to_try:
+                try:
+                    resp = await client.get(
+                        f"{POKEMON_TCG_API}/cards",
+                        params={"q": q, "pageSize": 10},
+                        timeout=10.0
+                    )
+                    tcg_data = resp.json()
+                    if tcg_data.get("data"):
+                        for card in tcg_data["data"]:
+                            tcg_matches.append({
+                                "id": card.get("id"),
+                                "name": card.get("name"),
+                                "set": card.get("set", {}).get("name", ""),
+                                "set_id": card.get("set", {}).get("id", ""),
+                                "number": card.get("number"),
+                                "rarity": card.get("rarity"),
+                                "types": card.get("types", []),
+                                "image": card.get("images", {}).get("small"),
+                                "image_large": card.get("images", {}).get("large"),
+                                "prices": card.get("tcgplayer", {}).get("prices", {}),
+                            })
+                        break  # Found results, stop trying
+                except:
+                    continue
+        
+        ai_result["tcg_matches"] = tcg_matches
+        return ai_result
+        
     except Exception as e:
         print(f"AI analysis error: {e}")
         raise HTTPException(status_code=500, detail=f"AI analysis failed: {str(e)}")

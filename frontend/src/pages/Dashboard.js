@@ -1171,12 +1171,27 @@ function AddCardModal({ onClose, onSuccess }) {
         const base64 = reader.result.split(',')[1];
         const analysis = await api.analyzeCard(base64);
         
-        if (analysis.pokemon_name) {
-          setSearchQuery(analysis.pokemon_name);
-          handleSearch(analysis.pokemon_name);
-        }
-        if (analysis.condition) {
-          setFormData(prev => ({ ...prev, condition: analysis.condition }));
+        // If AI found TCG matches, go directly to results
+        if (analysis.tcg_matches && analysis.tcg_matches.length > 0) {
+          setSearchResults(analysis.tcg_matches);
+          // Pre-fill French name
+          const frName = analysis.pokemon_name_fr || analysis.pokemon_name_en || '';
+          setSearchQuery(frName);
+          setFormData(prev => ({ ...prev, frenchName: frName, condition: analysis.condition || 'good', useOwnPhoto: true }));
+          
+          // If exact match (1 result or first result matches number), auto-select
+          if (analysis.tcg_matches.length === 1) {
+            selectCardFromAI(analysis.tcg_matches[0], frName, analysis.condition || 'good');
+          } else {
+            setStep(2);
+          }
+        } else if (analysis.pokemon_name_en) {
+          // Fallback: search by English name
+          setSearchQuery(analysis.pokemon_name_fr || analysis.pokemon_name_en);
+          handleSearch(analysis.pokemon_name_en);
+          if (analysis.condition) {
+            setFormData(prev => ({ ...prev, condition: analysis.condition, frenchName: analysis.pokemon_name_fr || '' }));
+          }
         }
       } catch (err) {
         console.error('AI analysis failed:', err);
@@ -1186,6 +1201,22 @@ function AddCardModal({ onClose, onSuccess }) {
     };
     reader.readAsDataURL(file);
   }, []);
+
+  const selectCardFromAI = (card, frenchName, condition) => {
+    setSelectedCard(card);
+    let price = 0;
+    if (card.prices) {
+      const priceKeys = ['holofoil', 'reverseHolofoil', 'normal', 'unlimited'];
+      for (const key of priceKeys) {
+        if (card.prices[key]?.market) {
+          price = card.prices[key].market;
+          break;
+        }
+      }
+    }
+    setFormData(prev => ({ ...prev, price: price.toFixed(2), frenchName: frenchName || prev.frenchName, condition: condition || prev.condition, useOwnPhoto: true }));
+    setStep(3);
+  };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -1306,7 +1337,7 @@ function AddCardModal({ onClose, onSuccess }) {
                   {analyzing && (
                     <div className="flex items-center gap-2 text-cyan-400 font-semibold">
                       <div className="w-5 h-5 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin" />
-                      Analyse IA en cours...
+                      Identification de la carte...
                     </div>
                   )}
                 </div>
