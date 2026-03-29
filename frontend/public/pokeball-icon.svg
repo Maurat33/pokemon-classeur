@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0a0a1a"/>
+      <stop offset="100%" style="stop-color:#1a0a2e"/>
+    </linearGradient>
+    <linearGradient id="holo" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff6b9d"/>
+      <stop offset="30%" style="stop-color:#c084fc"/>
+      <stop offset="60%" style="stop-color:#22d3ee"/>
+      <stop offset="100%" style="stop-color:#fbbf24"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="40%">
+      <stop offset="0%" style="stop-color:#c084fc;stop-opacity:0.3"/>
+      <stop offset="100%" style="stop-color:#0a0a1a;stop-opacity:0"/>
+    </radialGradient>
+    <linearGradient id="ball-top" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff4444"/>
+      <stop offset="100%" style="stop-color:#cc0000"/>
+    </linearGradient>
+    <linearGradient id="ball-bottom" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff"/>
+      <stop offset="100%" style="stop-color:#e0e0e0"/>
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="512" height="512" rx="100" fill="url(#bg)"/>
+  <!-- Glow -->
+  <circle cx="256" cy="256" r="220" fill="url(#glow)"/>
+  <!-- Sparkles -->
+  <circle cx="120" cy="100" r="3" fill="#fbbf24" opacity="0.8"/>
+  <circle cx="380" cy="80" r="2" fill="#22d3ee" opacity="0.6"/>
+  <circle cx="400" cy="380" r="3" fill="#ff6b9d" opacity="0.7"/>
+  <circle cx="90" cy="350" r="2" fill="#c084fc" opacity="0.5"/>
+  <circle cx="200" cy="60" r="2" fill="#22d3ee" opacity="0.4"/>
+  <circle cx="350" cy="420" r="2" fill="#fbbf24" opacity="0.6"/>
+  <!-- Pokeball -->
+  <!-- Top half (red) -->
+  <path d="M 256 120 A 136 136 0 0 1 392 256 L 120 256 A 136 136 0 0 1 256 120 Z" fill="url(#ball-top)" stroke="url(#holo)" stroke-width="5"/>
+  <!-- Bottom half (white) -->
+  <path d="M 120 256 A 136 136 0 0 0 392 256 Z" fill="url(#ball-bottom)" stroke="url(#holo)" stroke-width="5"/>
+  <!-- Center line -->
+  <line x1="120" y1="256" x2="392" y2="256" stroke="url(#holo)" stroke-width="5"/>
+  <!-- Center button outer -->
+  <circle cx="256" cy="256" r="40" fill="none" stroke="url(#holo)" stroke-width="6"/>
+  <!-- Center button inner -->
+  <circle cx="256" cy="256" r="25" fill="#1a0a2e" stroke="url(#holo)" stroke-width="4"/>
+  <!-- Center dot -->
+  <circle cx="256" cy="256" r="10" fill="url(#holo)"/>
+</svg>
