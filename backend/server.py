@@ -380,45 +380,168 @@ async def reset_password(request: Request):
 
 # ============ FRENCH TO ENGLISH POKEMON NAMES ============
 POKEMON_FR_TO_EN = {
-    # Popular Pokemon French -> English
-    "dracaufeu": "charizard", "tortank": "blastoise", "florizarre": "venusaur",
-    "pikachu": "pikachu", "raichu": "raichu", "mewtwo": "mewtwo", "mew": "mew",
-    "sulfura": "moltres", "artikodin": "articuno", "électhor": "zapdos",
-    "dracolosse": "dragonite", "ronflex": "snorlax", "léviator": "gyarados",
-    "lokhlass": "lapras", "évoli": "eevee", "aquali": "vaporeon",
-    "voltali": "jolteon", "pyroli": "flareon", "mentali": "espeon",
-    "noctali": "umbreon", "givrali": "glaceon", "phyllali": "leafeon",
-    "nymphali": "sylveon", "lugia": "lugia", "ho-oh": "ho-oh",
-    "celebi": "celebi", "lucario": "lucario", "arceus": "arceus",
-    "rayquaza": "rayquaza", "kyogre": "kyogre", "groudon": "groudon",
-    "dialga": "dialga", "palkia": "palkia", "giratina": "giratina",
+    # Gen 1
+    "bulbizarre": "bulbasaur", "herbizarre": "ivysaur", "florizarre": "venusaur",
+    "salamèche": "charmander", "reptincel": "charmeleon", "dracaufeu": "charizard",
+    "carapuce": "squirtle", "carabaffe": "wartortle", "tortank": "blastoise",
+    "chenipan": "caterpie", "chrysacier": "metapod", "papilusion": "butterfree",
+    "aspicot": "weedle", "coconfort": "kakuna", "dardargnan": "beedrill",
+    "roucool": "pidgey", "roucoups": "pidgeotto", "roucarnage": "pidgeot",
+    "rattata": "rattata", "rattatac": "raticate",
+    "piafabec": "spearow", "rapasdepic": "fearow",
+    "abo": "ekans", "arbok": "arbok",
+    "pikachu": "pikachu", "raichu": "raichu",
+    "sabelette": "sandshrew", "sablaireau": "sandslash",
+    "nidoran": "nidoran", "nidorina": "nidorina", "nidoqueen": "nidoqueen",
+    "nidorino": "nidorino", "nidoking": "nidoking",
+    "mélofée": "clefairy", "mélodelfe": "clefable",
+    "goupix": "vulpix", "feunard": "ninetales",
+    "rondoudou": "jigglypuff", "grodoudou": "wigglytuff",
+    "nosferapti": "zubat", "nosferalto": "golbat", "nostenfer": "crobat",
+    "mystherbe": "oddish", "ortide": "gloom", "rafflesia": "vileplume",
+    "paras": "paras", "parasect": "parasect",
+    "mimitoss": "venonat", "aéromite": "venomoth",
+    "taupiqueur": "diglett", "triopikeur": "dugtrio",
+    "miaouss": "meowth", "persian": "persian",
+    "psykokwak": "psyduck", "akwakwak": "golduck",
+    "férosinge": "mankey", "colossinge": "primeape",
+    "caninos": "growlithe", "arcanin": "arcanine",
+    "ptitard": "poliwag", "têtarte": "poliwhirl", "tartard": "poliwrath",
+    "abra": "abra", "kadabra": "kadabra", "alakazam": "alakazam",
+    "machoc": "machop", "machopeur": "machoke", "mackogneur": "machamp",
+    "chétiflor": "bellsprout", "boustiflor": "weepinbell", "empiflor": "victreebel",
+    "tentacool": "tentacool", "tentacruel": "tentacruel",
+    "racaillou": "geodude", "gravalanch": "graveler", "grolem": "golem",
+    "ponyta": "ponyta", "galopa": "rapidash",
+    "ramoloss": "slowpoke", "flagadoss": "slowbro",
+    "magnéti": "magnemite", "magnéton": "magneton", "magnézone": "magnezone",
+    "canarticho": "farfetch'd", "doduo": "doduo", "dodrio": "dodrio",
+    "otaria": "seel", "lamantine": "dewgong",
+    "tadmorv": "grimer", "grotadmorv": "muk",
+    "kokiyas": "shellder", "crustabri": "cloyster",
+    "fantominus": "gastly", "spectrum": "haunter", "ectoplasma": "gengar",
+    "onix": "onix", "steelix": "steelix",
+    "soporifik": "drowzee", "hypnomade": "hypno",
+    "krabby": "krabby", "krabboss": "kingler",
+    "voltorbe": "voltorb", "électrode": "electrode",
+    "noeunoeuf": "exeggcute", "noadkoko": "exeggutor",
+    "osselait": "cubone", "ossatueur": "marowak",
+    "tygnon": "hitmonchan", "kicklee": "hitmonlee",
+    "excelangue": "lickitung",
+    "smogo": "koffing", "smogogo": "weezing",
+    "rhinocorne": "rhyhorn", "rhinoféros": "rhydon", "rhinastoc": "rhyperior",
+    "leveinard": "chansey", "leuphorie": "blissey",
+    "saquedeneu": "tangela",
+    "kangourex": "kangaskhan",
+    "hypotrempe": "horsea", "hypocéan": "seadra", "hyporoi": "kingdra",
+    "poissirène": "goldeen", "poissoroy": "seaking",
+    "stari": "staryu", "staross": "starmie",
+    "m. mime": "mr. mime", "mr. mime": "mr. mime",
+    "insécateur": "scyther", "cizayox": "scizor",
+    "lippoutou": "jynx",
+    "élektek": "electabuzz", "élekable": "electivire",
+    "magmar": "magmar", "maganon": "magmortar",
+    "scarabrute": "pinsir",
+    "tauros": "tauros",
+    "magicarpe": "magikarp", "léviator": "gyarados",
+    "lokhlass": "lapras",
+    "métamorph": "ditto",
+    "évoli": "eevee", "aquali": "vaporeon", "voltali": "jolteon", "pyroli": "flareon",
+    "mentali": "espeon", "noctali": "umbreon", "givrali": "glaceon", "phyllali": "leafeon",
+    "nymphali": "sylveon",
+    "porygon": "porygon", "porygon2": "porygon2", "porygon-z": "porygon-z",
+    "amonita": "omanyte", "amonistar": "omastar",
+    "kabuto": "kabuto", "kabutops": "kabutops",
+    "ptéra": "aerodactyl",
+    "ronflex": "snorlax",
+    "artikodin": "articuno", "électhor": "zapdos", "sulfura": "moltres",
+    "minidraco": "dratini", "draco": "dragonair", "dracolosse": "dragonite",
+    "mewtwo": "mewtwo", "mew": "mew",
+    # Gen 2-4
+    "lugia": "lugia", "ho-oh": "ho-oh", "celebi": "celebi",
+    "lucario": "lucario", "riolu": "riolu",
+    "arceus": "arceus", "dialga": "dialga", "palkia": "palkia", "giratina": "giratina",
+    "darkrai": "darkrai", "cresselia": "cresselia",
+    "tyranocif": "tyranitar", "embrylex": "larvitar", "ymphect": "pupitar",
+    "métalosse": "metagross", "métang": "metang", "terhal": "beldum",
+    "gardévoir": "gardevoir", "kirlia": "kirlia", "tarsal": "ralts", "gallame": "gallade",
+    "clamiral": "samurott", "moustillon": "oshawott", "mateloutre": "dewott",
+    # Gen 5+
     "reshiram": "reshiram", "zekrom": "zekrom", "kyurem": "kyurem",
     "xerneas": "xerneas", "yveltal": "yveltal", "zygarde": "zygarde",
+    "diancie": "diancie",
     "solgaleo": "solgaleo", "lunala": "lunala", "necrozma": "necrozma",
     "zacian": "zacian", "zamazenta": "zamazenta", "éternatus": "eternatus",
     "desséliande": "trevenant", "brocélôme": "phantump",
-    "porygon": "porygon", "porygon2": "porygon2", "porygon-z": "porygon-z",
-    "fantominus": "gastly", "spectrum": "haunter", "ectoplasma": "gengar",
-    "salamèche": "charmander", "reptincel": "charmeleon",
-    "carapuce": "squirtle", "carabaffe": "wartortle",
-    "bulbizarre": "bulbasaur", "herbizarre": "ivysaur",
-    "alakazam": "alakazam", "machopeur": "machoke", "mackogneur": "machamp",
-    "magnéti": "magnemite", "magnéton": "magneton", "magnézone": "magnezone",
-    "tyranocif": "tyranitar", "métalosse": "metagross",
-    "gardévoir": "gardevoir", "gallame": "gallade",
+    "rayquaza": "rayquaza", "kyogre": "kyogre", "groudon": "groudon",
+    "deoxys": "deoxys", "jirachi": "jirachi",
+    "feunec": "fennekin", "roussil": "braixen", "goupelin": "delphox",
+    "grenousse": "froakie", "croâporal": "frogadier", "amphinobi": "greninja",
+    "marisson": "chespin", "boguérisse": "quilladin", "blindépique": "chesnaught",
+    "flambusard": "talonflame",
+    "prismillon": "vivillon",
+    "brutalibré": "hawlucha",
+    "couafarel": "furfrou",
+    "dedenne": "dedenne",
+    "pandespiègle": "pancham", "pandarbare": "pangoro",
+    # Scarlet & Violet
+    "miraidon": "miraidon", "koraidon": "koraidon",
+    "palafin": "palafin", "dofin": "finizen",
+    "fort-ivoire": "great tusk", "fer-épine": "iron thorns",
+    # Common search terms
+    "sarmurai": "samurott",
 }
 
+# Prefixes and suffixes to strip for better matching
+FR_PREFIXES = ["méga-", "mega-", "méga ", "mega "]
+CARD_SUFFIXES = [" ex", " gx", " vmax", " vstar", " v", " tag team", " break", " lv.x", " prime"]
+
 def translate_pokemon_name(name: str) -> str:
-    """Try to translate French Pokemon name to English"""
-    name_lower = name.lower().strip()
+    """Translate French Pokemon name to English, handling prefixes/suffixes"""
+    original = name.strip()
+    name_lower = original.lower().strip()
+    
+    # Extract prefix (Méga) and suffix (EX, GX, V, VMAX...)
+    prefix = ""
+    suffix = ""
+    base_name = name_lower
+    
+    for p in FR_PREFIXES:
+        if base_name.startswith(p):
+            prefix = "M " if "méga" in p or "mega" in p else ""
+            base_name = base_name[len(p):]
+            break
+    
+    for s in CARD_SUFFIXES:
+        if base_name.endswith(s):
+            suffix = s.upper().strip()
+            base_name = base_name[:-len(s)].strip()
+            break
+    
+    # Remove accents for matching
+    import unicodedata
+    base_clean = ''.join(c for c in unicodedata.normalize('NFD', base_name) if unicodedata.category(c) != 'Mn')
+    
     # Direct match
-    if name_lower in POKEMON_FR_TO_EN:
-        return POKEMON_FR_TO_EN[name_lower]
-    # Partial match
-    for fr, en in POKEMON_FR_TO_EN.items():
-        if fr in name_lower or name_lower in fr:
-            return en
-    return name
+    translated = None
+    if base_name in POKEMON_FR_TO_EN:
+        translated = POKEMON_FR_TO_EN[base_name]
+    elif base_clean in POKEMON_FR_TO_EN:
+        translated = POKEMON_FR_TO_EN[base_clean]
+    else:
+        # Partial match
+        for fr, en in POKEMON_FR_TO_EN.items():
+            fr_clean = ''.join(c for c in unicodedata.normalize('NFD', fr) if unicodedata.category(c) != 'Mn')
+            if fr in base_name or base_name in fr or fr_clean in base_clean or base_clean in fr_clean:
+                translated = en
+                break
+    
+    if translated:
+        result = f"{prefix}{translated} {suffix}".strip()
+        return result
+    
+    # If no match found, return original but reconstructed
+    return original
 
 # ============ POKEMON TCG API ============
 @app.get("/api/pokemon/search")
@@ -428,12 +551,37 @@ async def search_pokemon(q: str, page: int = 1, pageSize: int = 20):
     
     async with httpx.AsyncClient() as client:
         try:
+            # First try: exact name with wildcard
             response = await client.get(
                 f"{POKEMON_TCG_API}/cards",
                 params={"q": f"name:{search_term}*", "page": page, "pageSize": pageSize},
                 timeout=15.0
             )
             data = response.json()
+            
+            # If no results and original != translated, also try original
+            if not data.get("data") and search_term.lower() != q.lower().strip():
+                response = await client.get(
+                    f"{POKEMON_TCG_API}/cards",
+                    params={"q": f"name:{q}*", "page": page, "pageSize": pageSize},
+                    timeout=15.0
+                )
+                data = response.json()
+            
+            # If still no results, try without suffix (EX, GX, etc.)
+            if not data.get("data"):
+                import re
+                base = re.sub(r'\s*(ex|gx|vmax|vstar|v|tag team|break)\s*$', '', search_term, flags=re.IGNORECASE).strip()
+                # Also strip M / Mega prefix
+                base = re.sub(r'^(M|Mega)\s+', '', base, flags=re.IGNORECASE).strip()
+                if base != search_term:
+                    response = await client.get(
+                        f"{POKEMON_TCG_API}/cards",
+                        params={"q": f"name:{base}*", "page": page, "pageSize": pageSize},
+                        timeout=15.0
+                    )
+                    data = response.json()
+            
             cards = []
             for card in data.get("data", []):
                 cards.append({
