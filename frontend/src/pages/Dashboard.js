@@ -4,9 +4,10 @@ import {
   Search, Plus, BarChart3, Share2, Download, LogOut, Camera, 
   X, Trash2, Edit3, ChevronDown, TrendingUp, Award, 
   Package, Zap, FileSpreadsheet, FileText, ExternalLink, Copy,
-  CheckCircle, AlertCircle
+  CheckCircle, AlertCircle, Sun, Moon
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import * as api from '../services/api';
 import { useDropzone } from 'react-dropzone';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
@@ -25,6 +26,7 @@ const Pokeball = ({ size = 'normal' }) => (
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState('collection');
   const [cards, setCards] = useState([]);
   const [stats, setStats] = useState(null);
@@ -130,21 +132,41 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <header className="header-gradient py-6 px-4 relative">
-        {/* Background glow */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-0 left-1/4 w-64 h-32 bg-pink-500/10 rounded-full blur-3xl" />
-          <div className="absolute top-0 right-1/4 w-64 h-32 bg-cyan-500/10 rounded-full blur-3xl" />
-        </div>
+      <header className={`${isDark ? 'header-dark' : 'header-light'} py-6 px-4 relative`}>
+        {/* Background glow - only in dark mode */}
+        {isDark && (
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute top-0 left-1/4 w-64 h-32 bg-pink-500/10 rounded-full blur-3xl" />
+            <div className="absolute top-0 right-1/4 w-64 h-32 bg-cyan-500/10 rounded-full blur-3xl" />
+          </div>
+        )}
         
         <div className="max-w-6xl mx-auto relative z-10">
+          {/* Theme toggle */}
+          <div className="absolute right-0 top-0">
+            <button
+              onClick={toggleTheme}
+              className={`flex items-center gap-2 px-3 py-2 rounded-full transition-all ${
+                isDark 
+                  ? 'bg-white/10 hover:bg-white/20 text-white' 
+                  : 'bg-white/30 hover:bg-white/50 text-gray-800'
+              }`}
+              data-testid="theme-toggle"
+            >
+              {isDark ? <Sun size={18} /> : <Moon size={18} />}
+              <span className="text-sm font-semibold hidden sm:inline">
+                {isDark ? 'Clair' : 'Sombre'}
+              </span>
+            </button>
+          </div>
+          
           <div className="flex items-center justify-center gap-4 mb-2">
             <motion.div animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 2, repeat: Infinity }}>
               <Pokeball />
             </motion.div>
             <h1 
-              className="text-3xl md:text-4xl font-bold holographic-text"
-              style={{ fontFamily: "'Fredoka One', cursive" }}
+              className={`text-3xl md:text-4xl font-bold ${isDark ? 'holographic-text' : 'text-white'}`}
+              style={{ fontFamily: "'Fredoka One', cursive", textShadow: isDark ? 'none' : '2px 2px 0 #1a1a2e' }}
             >
               Mon Classeur Pokémon
             </h1>
@@ -152,24 +174,25 @@ export default function Dashboard() {
               <Pokeball />
             </motion.div>
           </div>
-          <p className="text-center text-gray-400 text-sm">
+          <p className={`text-center text-sm ${isDark ? 'text-gray-400' : 'text-white/90'}`}>
             ✨ Scanne tes cartes • Trouve les prix • Suis ta collection !
           </p>
         </div>
       </header>
 
       {/* Stats Bar */}
-      <div className="bg-[#0a0a0f] border-b border-white/5 py-4 px-4">
+      <div className="stats-bar py-4 px-4">
         <div className="max-w-6xl mx-auto flex flex-wrap justify-center gap-4">
-          <StatChip icon={<Pokeball size="small" />} label="Cartes" value={stats?.total_cards || 0} />
-          <StatChip icon={<Pokeball size="small" />} label="Pokémon" value={stats?.unique_pokemon || 0} />
+          <StatChip icon={<Pokeball size="small" />} label="Cartes" value={stats?.total_cards || 0} isDark={isDark} />
+          <StatChip icon={<Pokeball size="small" />} label="Pokémon" value={stats?.unique_pokemon || 0} isDark={isDark} />
           <StatChip 
             icon="💰" 
             label="Valeur totale" 
             value={`${(stats?.total_value || 0).toFixed(2)} €`}
             highlight 
+            isDark={isDark}
           />
-          <StatChip icon="⭐" label="Carte top" value={stats?.top_card?.name ? `${stats.top_card.price}€` : '—'} />
+          <StatChip icon="⭐" label="Carte top" value={stats?.top_card?.name ? `${stats.top_card.price}€` : '—'} isDark={isDark} />
         </div>
       </div>
 
@@ -322,14 +345,14 @@ export default function Dashboard() {
 }
 
 // Sub-components
-function StatChip({ icon, label, value, highlight }) {
+function StatChip({ icon, label, value, highlight, isDark = true }) {
   return (
     <div className={`stat-chip ${highlight ? 'stat-chip-gold' : ''}`}>
       <span className="text-xl">{typeof icon === 'string' ? icon : icon}</span>
       <div>
-        <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider">{label}</div>
+        <div className={`text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>{label}</div>
         <div 
-          className={`font-bold text-lg ${highlight ? 'text-yellow-400' : 'text-white'}`}
+          className={`font-bold text-lg ${highlight ? 'text-yellow-500' : isDark ? 'text-white' : 'text-gray-800'}`}
           style={{ fontFamily: "'Fredoka One', cursive" }}
         >
           {value}
@@ -427,8 +450,8 @@ function CollectionView({
               className="card-3d cursor-pointer group"
               data-testid={`card-${card._id}`}
             >
-              <div className="bg-[#121218] border border-white/10 rounded-2xl overflow-hidden hover:border-pink-500/50 transition-all">
-                <div className="relative aspect-[2/3] bg-gradient-to-b from-white/5 to-transparent">
+              <div className="pokemon-card-item rounded-2xl overflow-hidden transition-all">
+                <div className="relative aspect-[2/3]">
                   <img 
                     src={card.image_url} 
                     alt={card.card_name}
@@ -436,7 +459,7 @@ function CollectionView({
                     loading="lazy"
                   />
                   {card.quantity > 1 && (
-                    <div className="absolute top-2 left-2 bg-black/80 backdrop-blur px-2 py-1 rounded-lg text-xs font-bold">
+                    <div className="absolute top-2 left-2 bg-black/80 backdrop-blur px-2 py-1 rounded-lg text-xs font-bold text-white">
                       x{card.quantity}
                     </div>
                   )}
@@ -447,10 +470,10 @@ function CollectionView({
                     'bg-red-400 shadow-lg shadow-red-400/50'
                   }`} />
                 </div>
-                <div className="p-3 border-t border-white/5">
-                  <h3 className="font-bold text-sm truncate">{card.pokemon_name}</h3>
-                  <p className="text-xs text-gray-500 truncate">{card.set_name}</p>
-                  <div className="mt-2 inline-block bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 px-3 py-1 rounded-full text-sm font-bold text-yellow-400">
+                <div className="p-3">
+                  <h3 className="font-bold text-sm truncate text-adaptive">{card.pokemon_name}</h3>
+                  <p className="text-xs text-muted-adaptive truncate">{card.set_name}</p>
+                  <div className="mt-2 inline-block price-tag px-3 py-1 rounded-full text-sm font-bold">
                     {card.price.toFixed(2)}€
                   </div>
                 </div>
