@@ -548,15 +548,23 @@ function AddCardModal({ onClose, onSuccess }) {
     maxFiles: 1
   });
 
+  const [noResults, setNoResults] = useState(false);
+  
   const handleSearch = async (query) => {
     if (!query || query.length < 2) return;
     setLoading(true);
+    setNoResults(false);
     try {
       const { cards } = await api.searchPokemon(query);
       setSearchResults(cards || []);
-      if (cards?.length > 0) setStep(2);
+      if (cards?.length > 0) {
+        setStep(2);
+      } else {
+        setNoResults(true);
+      }
     } catch (err) {
       console.error('Search error:', err);
+      setNoResults(true);
     } finally {
       setLoading(false);
     }
@@ -673,9 +681,9 @@ function AddCardModal({ onClose, onSuccess }) {
                 <input
                   type="text"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => { setSearchQuery(e.target.value); setNoResults(false); }}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch(searchQuery)}
-                  placeholder="Ex: Dracaufeu, Pikachu, Mewtwo..."
+                  placeholder="Ex: Charizard, Pikachu, Mewtwo..."
                   className="flex-1 input-pokemon"
                   data-testid="search-card-input"
                 />
@@ -685,9 +693,21 @@ function AddCardModal({ onClose, onSuccess }) {
                   className="btn-pokemon disabled:opacity-50"
                   data-testid="search-card-btn"
                 >
-                  {loading ? '...' : '🔍 Chercher'}
+                  {loading ? '⏳' : '🔍 Chercher'}
                 </button>
               </div>
+              
+              {noResults && (
+                <div className="mt-4 p-4 bg-yellow-50 border-2 border-yellow-300 rounded-xl text-center">
+                  <p className="text-yellow-800 font-semibold mb-2">❌ Aucun résultat pour "{searchQuery}"</p>
+                  <p className="text-yellow-700 text-sm">
+                    💡 <strong>Astuce :</strong> Utilise le <strong>nom anglais</strong> du Pokémon !
+                  </p>
+                  <p className="text-yellow-600 text-xs mt-1">
+                    Ex: Dracaufeu → Charizard, Tortank → Blastoise, Desséliande → Trevenant
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         )}

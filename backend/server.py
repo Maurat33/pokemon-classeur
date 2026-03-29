@@ -278,14 +278,59 @@ async def refresh_token(request: Request, response: Response):
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
 
+# ============ FRENCH TO ENGLISH POKEMON NAMES ============
+POKEMON_FR_TO_EN = {
+    # Popular Pokemon French -> English
+    "dracaufeu": "charizard", "tortank": "blastoise", "florizarre": "venusaur",
+    "pikachu": "pikachu", "raichu": "raichu", "mewtwo": "mewtwo", "mew": "mew",
+    "sulfura": "moltres", "artikodin": "articuno", "électhor": "zapdos",
+    "dracolosse": "dragonite", "ronflex": "snorlax", "léviator": "gyarados",
+    "lokhlass": "lapras", "évoli": "eevee", "aquali": "vaporeon",
+    "voltali": "jolteon", "pyroli": "flareon", "mentali": "espeon",
+    "noctali": "umbreon", "givrali": "glaceon", "phyllali": "leafeon",
+    "nymphali": "sylveon", "lugia": "lugia", "ho-oh": "ho-oh",
+    "celebi": "celebi", "lucario": "lucario", "arceus": "arceus",
+    "rayquaza": "rayquaza", "kyogre": "kyogre", "groudon": "groudon",
+    "dialga": "dialga", "palkia": "palkia", "giratina": "giratina",
+    "reshiram": "reshiram", "zekrom": "zekrom", "kyurem": "kyurem",
+    "xerneas": "xerneas", "yveltal": "yveltal", "zygarde": "zygarde",
+    "solgaleo": "solgaleo", "lunala": "lunala", "necrozma": "necrozma",
+    "zacian": "zacian", "zamazenta": "zamazenta", "éternatus": "eternatus",
+    "desséliande": "trevenant", "brocélôme": "phantump",
+    "porygon": "porygon", "porygon2": "porygon2", "porygon-z": "porygon-z",
+    "fantominus": "gastly", "spectrum": "haunter", "ectoplasma": "gengar",
+    "salamèche": "charmander", "reptincel": "charmeleon",
+    "carapuce": "squirtle", "carabaffe": "wartortle",
+    "bulbizarre": "bulbasaur", "herbizarre": "ivysaur",
+    "alakazam": "alakazam", "machopeur": "machoke", "mackogneur": "machamp",
+    "magnéti": "magnemite", "magnéton": "magneton", "magnézone": "magnezone",
+    "tyranocif": "tyranitar", "métalosse": "metagross",
+    "gardévoir": "gardevoir", "gallame": "gallade",
+}
+
+def translate_pokemon_name(name: str) -> str:
+    """Try to translate French Pokemon name to English"""
+    name_lower = name.lower().strip()
+    # Direct match
+    if name_lower in POKEMON_FR_TO_EN:
+        return POKEMON_FR_TO_EN[name_lower]
+    # Partial match
+    for fr, en in POKEMON_FR_TO_EN.items():
+        if fr in name_lower or name_lower in fr:
+            return en
+    return name
+
 # ============ POKEMON TCG API ============
 @app.get("/api/pokemon/search")
 async def search_pokemon(q: str, page: int = 1, pageSize: int = 20):
+    # Try French to English translation
+    search_term = translate_pokemon_name(q)
+    
     async with httpx.AsyncClient() as client:
         try:
             response = await client.get(
                 f"{POKEMON_TCG_API}/cards",
-                params={"q": f"name:{q}*", "page": page, "pageSize": pageSize},
+                params={"q": f"name:{search_term}*", "page": page, "pageSize": pageSize},
                 timeout=15.0
             )
             data = response.json()
