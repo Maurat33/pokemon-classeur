@@ -452,11 +452,13 @@ export default function Dashboard() {
         {showAddModal && (
           <AddCardModal 
             onClose={() => setShowAddModal(false)} 
-            onSuccess={(isDuplicate) => {
+            onSuccess={(result) => {
               loadData();
               setShowAddModal(false);
-              if (isDuplicate) {
+              if (result.is_duplicate) {
                 showToast('Carte en double ! Quantité mise à jour 🔄');
+              } else if (result.auto_binder) {
+                showToast(`Carte ajoutée au classeur "${result.auto_binder}" ! 🎉📂`);
               } else {
                 showToast('Carte ajoutée ! 🎉');
               }
@@ -1286,7 +1288,7 @@ function AddCardModal({ onClose, onSuccess }) {
         rarity: selectedCard.rarity,
         types: selectedCard.types || []
       });
-      onSuccess(result.is_duplicate);
+      onSuccess(result);
     } catch (err) {
       console.error('Create card error:', err);
     } finally {

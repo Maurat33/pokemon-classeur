@@ -492,6 +492,98 @@ POKEMON_FR_TO_EN = {
     "sarmurai": "samurott",
 }
 
+# ============ GEN 1 POKEMON (151 originals) ============
+GEN_1_POKEMON_EN = {
+    "bulbasaur", "ivysaur", "venusaur", "charmander", "charmeleon", "charizard",
+    "squirtle", "wartortle", "blastoise", "caterpie", "metapod", "butterfree",
+    "weedle", "kakuna", "beedrill", "pidgey", "pidgeotto", "pidgeot",
+    "rattata", "raticate", "spearow", "fearow", "ekans", "arbok",
+    "pikachu", "raichu", "sandshrew", "sandslash", "nidoran", "nidorina",
+    "nidoqueen", "nidorino", "nidoking", "clefairy", "clefable",
+    "vulpix", "ninetales", "jigglypuff", "wigglytuff", "zubat", "golbat",
+    "oddish", "gloom", "vileplume", "paras", "parasect", "venonat", "venomoth",
+    "diglett", "dugtrio", "meowth", "persian", "psyduck", "golduck",
+    "mankey", "primeape", "growlithe", "arcanine", "poliwag", "poliwhirl",
+    "poliwrath", "abra", "kadabra", "alakazam", "machop", "machoke", "machamp",
+    "bellsprout", "weepinbell", "victreebel", "tentacool", "tentacruel",
+    "geodude", "graveler", "golem", "ponyta", "rapidash", "slowpoke", "slowbro",
+    "magnemite", "magneton", "farfetch'd", "doduo", "dodrio", "seel", "dewgong",
+    "grimer", "muk", "shellder", "cloyster", "gastly", "haunter", "gengar",
+    "onix", "drowzee", "hypno", "krabby", "kingler", "voltorb", "electrode",
+    "exeggcute", "exeggutor", "cubone", "marowak", "hitmonlee", "hitmonchan",
+    "lickitung", "koffing", "weezing", "rhyhorn", "rhydon", "chansey",
+    "tangela", "kangaskhan", "horsea", "seadra", "goldeen", "seaking",
+    "staryu", "starmie", "mr. mime", "scyther", "jynx", "electabuzz",
+    "magmar", "pinsir", "tauros", "magikarp", "gyarados", "lapras", "ditto",
+    "eevee", "vaporeon", "jolteon", "flareon", "porygon", "omanyte", "omastar",
+    "kabuto", "kabutops", "aerodactyl", "snorlax", "articuno", "zapdos",
+    "moltres", "dratini", "dragonair", "dragonite", "mewtwo", "mew"
+}
+
+GEN_1_POKEMON_FR = {
+    "bulbizarre", "herbizarre", "florizarre", "salamèche", "reptincel", "dracaufeu",
+    "carapuce", "carabaffe", "tortank", "chenipan", "chrysacier", "papilusion",
+    "aspicot", "coconfort", "dardargnan", "roucool", "roucoups", "roucarnage",
+    "rattata", "rattatac", "piafabec", "rapasdepic", "abo", "arbok",
+    "pikachu", "raichu", "sabelette", "sablaireau", "nidoran", "nidorina",
+    "nidoqueen", "nidorino", "nidoking", "mélofée", "mélodelfe",
+    "goupix", "feunard", "rondoudou", "grodoudou", "nosferapti", "nosferalto",
+    "mystherbe", "ortide", "rafflesia", "paras", "parasect", "mimitoss", "aéromite",
+    "taupiqueur", "triopikeur", "miaouss", "persian", "psykokwak", "akwakwak",
+    "férosinge", "colossinge", "caninos", "arcanin", "ptitard", "têtarte",
+    "tartard", "abra", "kadabra", "alakazam", "machoc", "machopeur", "mackogneur",
+    "chétiflor", "boustiflor", "empiflor", "tentacool", "tentacruel",
+    "racaillou", "gravalanch", "grolem", "ponyta", "galopa", "ramoloss", "flagadoss",
+    "magnéti", "magnéton", "canarticho", "doduo", "dodrio", "otaria", "lamantine",
+    "tadmorv", "grotadmorv", "kokiyas", "crustabri", "fantominus", "spectrum", "ectoplasma",
+    "onix", "soporifik", "hypnomade", "krabby", "krabboss", "voltorbe", "électrode",
+    "noeunoeuf", "noadkoko", "osselait", "ossatueur", "kicklee", "tygnon",
+    "excelangue", "smogo", "smogogo", "rhinocorne", "rhinoféros", "leveinard",
+    "saquedeneu", "kangourex", "hypotrempe", "hypocéan", "poissirène", "poissoroy",
+    "stari", "staross", "m. mime", "mr. mime", "insécateur", "lippoutou", "élektek",
+    "magmar", "scarabrute", "tauros", "magicarpe", "léviator", "lokhlass", "métamorph",
+    "évoli", "aquali", "voltali", "pyroli", "porygon", "amonita", "amonistar",
+    "kabuto", "kabutops", "ptéra", "ronflex", "artikodin", "électhor",
+    "sulfura", "minidraco", "draco", "dracolosse", "mewtwo", "mew"
+}
+
+def is_gen1_pokemon(name: str) -> bool:
+    """Check if a pokemon name (FR or EN) belongs to Generation 1"""
+    import unicodedata
+    name_lower = name.lower().strip()
+    # Remove suffixes like "ex", "gx", "v", "vmax" etc. - MUST be preceded by a space
+    import re
+    base_name = re.sub(r'\s+(ex|gx|vmax|vstar|v|tag team|break|lv\.x|prime)\s*$', '', name_lower, flags=re.IGNORECASE).strip()
+    # Remove accents for comparison
+    base_clean = ''.join(c for c in unicodedata.normalize('NFD', base_name) if unicodedata.category(c) != 'Mn')
+    
+    # Check FR names
+    if base_name in GEN_1_POKEMON_FR or base_clean in GEN_1_POKEMON_FR:
+        return True
+    # Check EN names
+    if base_name in GEN_1_POKEMON_EN or base_clean in GEN_1_POKEMON_EN:
+        return True
+    # Check via translation dict
+    translated = POKEMON_FR_TO_EN.get(base_name) or POKEMON_FR_TO_EN.get(base_clean)
+    if translated and translated.lower() in GEN_1_POKEMON_EN:
+        return True
+    return False
+
+async def get_or_create_gen1_binder(user_id: str) -> str:
+    """Find or create the 'Génération 1' binder for a user, returns binder_id"""
+    binder = await db.binders.find_one({"user_id": user_id, "name": "Génération 1"})
+    if binder:
+        return str(binder["_id"])
+    # Create it
+    result = await db.binders.insert_one({
+        "user_id": user_id,
+        "name": "Génération 1",
+        "description": "Cartes Pokémon de la 1ère génération (151 originaux)",
+        "color": "from-red-500 to-yellow-500",
+        "created_at": datetime.now(timezone.utc)
+    })
+    return str(result.inserted_id)
+
 # Prefixes and suffixes to strip for better matching
 FR_PREFIXES = ["méga-", "mega-", "méga ", "mega "]
 CARD_SUFFIXES = [" ex", " gx", " vmax", " vstar", " v", " tag team", " break", " lv.x", " prime"]
@@ -873,6 +965,13 @@ async def create_card(data: CardCreate, request: Request):
         duplicate["is_duplicate"] = True
         return duplicate
     
+    # Auto-assign to "Génération 1" binder if pokemon is Gen 1 and no binder specified
+    assigned_binder_id = data.binder_id
+    auto_binder_name = None
+    if not assigned_binder_id and is_gen1_pokemon(data.pokemon_name):
+        assigned_binder_id = await get_or_create_gen1_binder(user["_id"])
+        auto_binder_name = "Génération 1"
+    
     card_doc = {
         "user_id": user["_id"],
         "pokemon_name": data.pokemon_name,
@@ -886,13 +985,15 @@ async def create_card(data: CardCreate, request: Request):
         "tcg_id": data.tcg_id,
         "rarity": data.rarity,
         "types": data.types or [],
-        "binder_id": data.binder_id,
+        "binder_id": assigned_binder_id,
         "created_at": datetime.now(timezone.utc),
         "price_history": [{"price": data.price, "date": datetime.now(timezone.utc).isoformat()}]
     }
     result = await db.cards.insert_one(card_doc)
     card_doc["_id"] = str(result.inserted_id)
     card_doc["is_duplicate"] = False
+    if auto_binder_name:
+        card_doc["auto_binder"] = auto_binder_name
     return card_doc
 
 @app.put("/api/cards/{card_id}")
