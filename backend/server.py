@@ -57,7 +57,8 @@ app = FastAPI(title="Pokemon Classeur API", lifespan=lifespan)
 frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:3000")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[frontend_url, "http://localhost:3000"],
+    allow_origins=[frontend_url, "http://localhost:3000", "https://*.emergent.host"],
+    allow_origin_regex=r"https://.*\.emergent\.(host|com)",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -978,14 +979,14 @@ async def get_cards(request: Request):
     if user.get("role") == "child":
         admin = await db.users.find_one({"role": "admin"})
         if admin:
-            cursor = db.cards.find({"user_id": {"$in": [str(admin["_id"]), user["_id"]]}}).sort("created_at", -1)
+            cursor = db.cards.find({"user_id": {"$in": [str(admin["_id"]), user["_id"]]}}).sort("created_at", -1).limit(2000)
         else:
-            cursor = db.cards.find({"user_id": user["_id"]}).sort("created_at", -1)
+            cursor = db.cards.find({"user_id": user["_id"]}).sort("created_at", -1).limit(2000)
     else:
         # Admin sees own cards + children's cards
         child_ids = [doc["_id"] async for doc in db.users.find({"role": "child"}, {"_id": 1})]
         all_ids = [user["_id"]] + [str(cid) for cid in child_ids]
-        cursor = db.cards.find({"user_id": {"$in": all_ids}}).sort("created_at", -1)
+        cursor = db.cards.find({"user_id": {"$in": all_ids}}).sort("created_at", -1).limit(2000)
     
     cards = []
     async for card in cursor:
@@ -1214,7 +1215,7 @@ async def get_shared_collection(token: str):
     if not share:
         raise HTTPException(status_code=404, detail="Share not found")
     
-    cursor = db.cards.find({"user_id": share["user_id"]}).sort("price", -1)
+    cursor = db.cards.find({"user_id": share["user_id"]}).sort("price", -1).limit(500)
     cards = []
     async for card in cursor:
         card["_id"] = str(card["_id"])
@@ -1239,7 +1240,7 @@ async def get_shared_collection(token: str):
 async def export_pdf(request: Request):
     user = await get_current_user(request)
     
-    cursor = db.cards.find({"user_id": user["_id"]}).sort("pokemon_name", 1)
+    cursor = db.cards.find({"user_id": user["_id"]}).sort("pokemon_name", 1).limit(1000)
     cards = await cursor.to_list(1000)
     
     buffer = BytesIO()
@@ -1296,7 +1297,7 @@ async def export_pdf(request: Request):
 async def export_excel(request: Request):
     user = await get_current_user(request)
     
-    cursor = db.cards.find({"user_id": user["_id"]}).sort("pokemon_name", 1)
+    cursor = db.cards.find({"user_id": user["_id"]}).sort("pokemon_name", 1).limit(1000)
     cards = await cursor.to_list(1000)
     
     wb = openpyxl.Workbook()
@@ -1353,7 +1354,7 @@ async def get_binders(request: Request):
         if admin:
             target_id = str(admin["_id"])
     
-    cursor = db.binders.find({"user_id": target_id}).sort("created_at", -1)
+    cursor = db.binders.find({"user_id": target_id}).sort("created_at", -1).limit(100)
     binders = []
     async for b in cursor:
         b["_id"] = str(b["_id"])
@@ -1483,7 +1484,7 @@ async def get_vitrine(token: str):
     if not vitrine:
         raise HTTPException(status_code=404, detail="Vitrine non trouvée")
     
-    cursor = db.cards.find({"user_id": vitrine["user_id"]}).sort("price", -1)
+    cursor = db.cards.find({"user_id": vitrine["user_id"]}).sort("price", -1).limit(500)
     cards = []
     async for card in cursor:
         cards.append({
