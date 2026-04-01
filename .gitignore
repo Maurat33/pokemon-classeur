@@ -16,3 +16,7 @@ dist/
 # OS files
 .DS_Store
 Thumbs.db
+-e 
+# Environment files
+*.env
+*.env.*
