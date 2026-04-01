@@ -1,43 +1,56 @@
 version: '3.8'
 
 services:
-  # Base de données MongoDB
+  # ─── Base de données MongoDB ───
   mongo:
     image: mongo:7
     container_name: pokemon-mongo
     restart: always
     volumes:
-      - mongo_data:/data/db
-    ports:
-      - "27017:27017"
+      - ./data/mongodb:/data/db
+    networks:
+      - pokemon-net
+    # Pas de port exposé : seul le backend y accède
 
-  # Backend FastAPI
+  # ─── Backend FastAPI ───
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: pokemon-backend
     restart: always
-    ports:
-      - "8001:8001"
     depends_on:
       - mongo
-    env_file:
-      - ./backend/.env.production
+    environment:
+      - MONGO_URL=mongodb://mongo:27017
+      - DB_NAME=pokemon_classeur
+      - JWT_SECRET=${JWT_SECRET:-changez-moi-avec-openssl-rand-hex-32}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@pokemon.com}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-Admin123!}
+      - CHILD_EMAIL=${CHILD_EMAIL:-maurat.leo@gmail.com}
+      - CHILD_PASSWORD=${CHILD_PASSWORD:-Facile33}
+      - CHILD_NAME=${CHILD_NAME:-Léo}
+      - EMERGENT_LLM_KEY=${EMERGENT_LLM_KEY}
+      - FRONTEND_URL=https://${DOMAIN:-pokemon.equiptoi.fr}
+    networks:
+      - pokemon-net
 
-  # Frontend React
+  # ─── Frontend React (Nginx) ───
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - REACT_APP_BACKEND_URL=${DOMAIN_URL:-http://localhost}
+        - REACT_APP_BACKEND_URL=https://${DOMAIN:-pokemon.equiptoi.fr}
     container_name: pokemon-frontend
     restart: always
     ports:
-      - "80:80"
+      - "${HTTP_PORT:-8880}:80"
     depends_on:
       - backend
+    networks:
+      - pokemon-net
 
-volumes:
-  mongo_data:
+networks:
+  pokemon-net:
+    driver: bridge

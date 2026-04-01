@@ -11,10 +11,9 @@ RUN yarn install --frozen-lockfile
 COPY . .
 RUN yarn build
 
-# Serveur Nginx leger
+# Serveur Nginx léger
 FROM nginx:alpine
 
-# Config Nginx avec proxy vers le backend
 COPY --from=build /app/build /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 

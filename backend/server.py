@@ -140,8 +140,9 @@ async def seed_admin():
         )
     
     # Seed child account for Léo
-    child_email = "maurat.leo@gmail.com"
-    child_password = "Facile33"
+    child_email = os.environ.get("CHILD_EMAIL", "maurat.leo@gmail.com")
+    child_password = os.environ.get("CHILD_PASSWORD", "Facile33")
+    child_name = os.environ.get("CHILD_NAME", "Léo")
     existing_child = await db.users.find_one({"email": child_email})
     if existing_child is None:
         # Check if old email exists and migrate
@@ -157,7 +158,7 @@ async def seed_admin():
             await db.users.insert_one({
                 "email": child_email,
                 "password_hash": hashed,
-                "name": "Léo",
+                "name": child_name,
                 "role": "child",
                 "stars": 0,
                 "badges": [],
